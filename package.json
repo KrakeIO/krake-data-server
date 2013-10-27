@@ -9,7 +9,6 @@
   }  
   , "dependencies": {
       "async": ""
-    , "combined-stream" : ""
     , "ejs": "0.6.1"
     , "express": "2.5.7"
     , "krake-toolkit": ""
