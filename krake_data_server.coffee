@@ -11,8 +11,7 @@ ktk = require 'krake-toolkit'
 QueryValidator = ktk.query.validator
 QueryHelper = ktk.query.helper
 Sequelize = require 'sequelize'
-
-qv = new QueryValidator()
+CacheManager = require './helper/cache_manager'
 
 CONFIG = null
 ENV = (process.env['NODE_ENV'] || 'development').toLowerCase()
@@ -37,14 +36,14 @@ password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
 dbHandler = new Sequelize CONFIG.postgres.database, userName, password, options
 db_dev = new Sequelize CONFIG.userDataDB, userName, password, options
+krakeSchema = ktk.schema.krake
+Krake = db_dev.define 'krakes', krakeSchema
 
 modelBody = {}
 modelBody["properties"] = 'hstore'
 modelBody["pingedAt"] = 'timestamp'
-
-krakeSchema = ktk.schema.krake
-Krake = db_dev.define 'krakes', krakeSchema
-
+qv = new QueryValidator()
+cm = new CacheManager CONFIG.cachePath, dbHandler, modelBody
 
 # @Description: get krake columns given a unique_handle
 # @param: handle:string
@@ -433,19 +432,22 @@ app.get '/:table_name/search/:format', (req, res)=>
     limit && query_string += 'LIMIT ' + limit + ' '
     offset && query_string += 'OFFSET ' + offset  
     
-    console.log query_string
-    
-    getRecords req.params.table_name, columns, query_string, (err, results)=>
-    
-      switch req.params.format
-        when 'json' then res.send results
-        when 'csv' 
-          res.header 'Content-Disposition', 'attachment;filename=' + req.params.table_name + '.csv'
-          res.send convertToCSV results, columns
-        when 'html'
-          res.send convertToHTML results, columns, url_columns  
+    # getRecords req.params.table_name, columns, url_columns, query_string, (err, results)=>    
+    switch req.params.format
+      when 'json'
+        cm.getCache req.params.table_name, columns, url_columns, query_string, req.params.format, (err, pathToCache)->
+          fs.createReadStream(pathToCache).pipe res
+          
+      when 'csv'
+        res.header 'Content-Disposition', 'attachment;filename=' + req.params.table_name + '.csv'
+        cm.getCache req.params.table_name, columns, url_columns, query_string, req.params.format, (err, pathToCache)->
+          fs.createReadStream(pathToCache).pipe res
 
-
+      when 'html'
+        cm.getCache req.params.table_name, columns, url_columns, query_string, req.params.format, (err, pathToCache)->
+          fs.createReadStream(pathToCache).pipe res      
+          
+          
 
 # Start api server
 port = process.argv[2] || 9803

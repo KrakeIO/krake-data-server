@@ -7,7 +7,8 @@
       "port" : "5432",
       "database" : "scraped_data_repo_development"
     },
-    "userDataDB" : "dev_panel_development"
+    "userDataDB" : "dev_panel_development",
+    "cachePath" : "/tmp/"
   },
   "production": {
     "postgres" : {
@@ -17,6 +18,7 @@
       "port" : "5432",
       "database" : "scraped_data_repo"
     },
-    "userDataDB" : "dev_panel"    
+    "userDataDB" : "dev_panel",
+    "cachePath" : "/tmp/"    
   }
 }
