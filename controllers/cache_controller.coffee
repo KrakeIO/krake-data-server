@@ -124,7 +124,7 @@ class CacheManager
       )
 
     cbFailure = (error)=>
-      console.log "getBatches : table does not exist \nError: " + e
+      console.log "getBatches : table does not exist \nError: " + error
       callback []
       
     @dbHandler.define(table_name, @modelBody).sync().success(cbSuccess).error(cbFailure)
