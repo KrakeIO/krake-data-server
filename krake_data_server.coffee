@@ -41,7 +41,7 @@ Krake = db_dev.define 'krakes', krakeSchema
 recordBody = require './schema/record'
 cm = new CacheController CONFIG.cachePath, dbHandler, recordBody
 
-# Converts raw query input value to actual stuff
+# @Description : Converts raw query input value to actual stuff
 queryValue = (raw_input)=>
 
   switch typeof(raw_input)
@@ -63,6 +63,39 @@ queryValue = (raw_input)=>
       
     when 'number'     
       " = '" + raw_input + "' "
+
+
+
+# @Description : Converts the query object into where clause
+# @param : queryObj:Object
+# @return : whereString:String
+whereClause = (queryString)->
+  try
+    q = kson.parse queryString
+  catch e
+    q = {}
+
+  params = Object.keys q
+
+  # Handles the where clause
+  where_clause = ''
+  for x in [0...params.length]
+    switch params[x]
+      when 'offset'
+        offset = q[params[x]]
+      when 'limit'
+        limit = q[params[x]]
+      when 'createdAt', 'updatedAt', 'pingedAt'
+        where_clause += ' "' + params[x] + '" ' + queryValue( q[params[x]] ) + ' and '
+      else
+        where_clause += " properties->'" + params[x] + "' " + queryValue( q[params[x]] ) + ' and '
+
+  where_clause.length > 0 && where_clause = ' where ' + where_clause + ' true '
+
+  limit && where_clause += 'LIMIT ' + limit + ' '
+  offset && where_clause += 'OFFSET ' + offset
+
+  where_clause
 
 
 
@@ -108,36 +141,8 @@ app.get '/:table_name/search/:format', (req, res)=>
 
   km = new KrakeModel db_dev, req.params.table_name, ()=>
 
-    try
-      q = kson.parse req.query.q
-    catch e
-      q = {}
-  
-    params = Object.keys q
-  
-    # Handles the where clause
-    where_clause = ''
-    for x in [0...params.length]
-      switch params[x]
-        when 'offset'
-          offset = q[params[x]]
-        when 'limit'
-          limit = q[params[x]]
-        when 'createdAt', 'updatedAt', 'pingedAt'
-          where_clause += ' "' + params[x] + '" ' + queryValue( q[params[x]] ) + ' and '
-        else
-          where_clause += " properties->'" + params[x] + "' " + queryValue( q[params[x]] ) + ' and '
-
-    where_clause.length > 0 && where_clause = ' where ' + where_clause + ' true '
-    
-    query_string = 'SELECT ' + 
-      km.getColumnsQuery() +
-      ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
-      ' FROM "' + req.params.table_name + '" ' +
-      where_clause
-    
-    limit && query_string += 'LIMIT ' + limit + ' '
-    offset && query_string += 'OFFSET ' + offset
+    query_string = 'SELECT ' + km.getColumnsQuery() + ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
+      ' FROM "' + req.params.table_name + '" ' + whereClause(req.query.q)
 
     switch req.params.format
       when 'json'
@@ -151,9 +156,29 @@ app.get '/:table_name/search/:format', (req, res)=>
 
       when 'html'
         cm.getCache req.params.table_name, km.columns, km.url_columns, query_string, req.params.format, (err, pathToCache)->
-          fs.createReadStream(pathToCache).pipe res      
+          fs.createReadStream(pathToCache).pipe res
           
           
+# @Description : Gets total records harvested in batch
+app.get '/:table_name/count', (req, res)=>
+
+  queryString = 'SELECT count(*) FROM "' + req.params.table_name + '" ' + whereClause (req.query.q)
+  console.log queryString  
+  dbHandler.query(queryString).success(
+    (rows)=>
+      if rows.length > 0 
+        res.send rows[0]
+      else
+        res.send { "count" : 0 }
+        
+  ).error(
+    (e)=>
+      console.log "Error occured while fetching count \nError: " + e
+      res.send { "count" : 0 }
+  )    
+    
+
+
 
 # Start api server
 port = process.argv[2] || 9803
@@ -169,3 +194,5 @@ console.log "Connections Established " +
   "\n    Krake Scraped Data DB : %s" + 
   "\n    Data server listening at port : %s",
   ENV, userName, password, options.port, options.host, CONFIG.postgres.database, CONFIG.userDataDB, port
+
+
