@@ -138,9 +138,7 @@ app.get '/:table_name/diff/:format/:date', (req, res)=>
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:table_name/search/:format', (req, res)=>
-
   km = new KrakeModel db_dev, req.params.table_name, ()=>
-
     query_string = 'SELECT ' + km.getColumnsQuery() + ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
       ' FROM "' + req.params.table_name + '" ' + whereClause(req.query.q)
 
@@ -161,21 +159,21 @@ app.get '/:table_name/search/:format', (req, res)=>
           
 # @Description : Gets total records harvested in batch
 app.get '/:table_name/count', (req, res)=>
-
-  queryString = 'SELECT count(*) FROM "' + req.params.table_name + '" ' + whereClause (req.query.q)
-  console.log queryString  
-  dbHandler.query(queryString).success(
-    (rows)=>
-      if rows.length > 0 
-        res.send rows[0]
-      else
+  km = new KrakeModel db_dev, req.params.table_name, ()=>
+    queryString = 'SELECT count(*) FROM "' + req.params.table_name + '" ' + whereClause (req.query.q)
+    console.log queryString  
+    dbHandler.query(queryString).success(
+      (rows)=>
+        if rows.length > 0 
+          res.send rows[0]
+        else
+          res.send { "count" : 0 }
+          
+    ).error(
+      (e)=>
+        console.log "Error occured while fetching count \nError: " + e
         res.send { "count" : 0 }
-        
-  ).error(
-    (e)=>
-      console.log "Error occured while fetching count \nError: " + e
-      res.send { "count" : 0 }
-  )    
+    )    
     
 
 
