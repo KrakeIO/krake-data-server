@@ -171,7 +171,6 @@ class CacheManager
         when 'csv'
           query = "Copy (" + query + ") To '" + pathToFile + "' With CSV HEADER;"
       
-      console.log 'generating cache : %s', query
       @dbHandler.query(query).success(
         (rows)=>
           switch format
