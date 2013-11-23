@@ -10,7 +10,13 @@ class KrakeModel
       for x in [0... krakes.length]
         current_krake = krakes[x]
         curr_qh = new QueryHelper(current_krake.content)
-        @columns = curr_qh.getFilteredColumns() || curr_qh.getColumns() 
+        if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
+          @columns = curr_qh.getFilteredColumns()
+        else if curr_qh.getColumns() && curr_qh.getColumns().length > 0
+          @columns = curr_qh.getColumns()
+        else
+          @columns = ["no columns defined"]
+
         @url_columns = curr_qh.getUrlColumns() 
         callback && callback curr_qh.is_valid
   
