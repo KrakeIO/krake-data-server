@@ -6,6 +6,7 @@ kson = require 'kson'
 
 class CacheManager
   constructor: (@cachePath, @dbHandler, @modelBody)->
+    @csvDelimiter = "  DELIMITER ';' "
   
   # @param : km:KrakeModel
   # @param : date:string
@@ -169,7 +170,8 @@ class CacheManager
             query + ") row ) To '" + pathToFile + "';"
 
         when 'csv'
-          query = "Copy (" + query + ") To '" + pathToFile + "' With CSV HEADER;"
+          query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
+          console.log query
       
       @dbHandler.query(query).success(
         (rows)=>

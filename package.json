@@ -11,7 +11,7 @@
       "async": ""
     , "ejs": "0.6.1"
     , "express": "2.5.7"
-    , "krake-toolkit": ""
+    , "krake-toolkit": "https://github.com/KrakeIO/krake-toolkit/tarball/master"
     , "kson": "https://github.com/KrakeIO/kson/tarball/master"
     , "pg" : ""
     , "pg-hstore" : ""
