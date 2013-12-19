@@ -123,7 +123,7 @@ Ensures records returned do not have col_name value that is NULL
 { col_name: { $exist: true} }
 ```
 
-### operator distince
+### operator distinct
 Returns distinct values in col_name
 ```json
 { $distinct : col_name }
