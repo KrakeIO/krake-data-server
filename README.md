@@ -52,7 +52,7 @@ A JSON object that contains the following clauses
 
 ```json
 http://krake-data-server/:table_name/search/:format?q={ 
-    $select : [ col_name1, col_name2, col_name3, col_name4 ]
+    $select : [ col_name1, col_name2, col_name3, col_name4 ],
     $where : { 
       col_name1 : value 
     },
