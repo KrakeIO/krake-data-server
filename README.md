@@ -32,15 +32,47 @@ coffee krake_data_server.coffee
 ```
 
 # Query Operators
-## Implemented
-### operator =
+HTTP GET Request to query Krake data server for data
+```console
+http://krake-data-server/:table_name/search/:format?q=query_object
+```
+
+- :format
+    - html
+    - json
+    - csv
+
+## QueryObject
+A JSON object that contains the following clauses 
+  - $select : the columns to return in each row of record
+  - $where : the conditions to be used for selecting the records
+  - $order : the order in which to order the records returned
+  - $limit : the total number of records to return
+  - $skip : the number of records to discard before returning the first set of records
+
+```json
+http://krake-data-server/:table_name/search/:format?q={ 
+    $select : [ col_name1, col_name2, col_name3, col_name4 ]
+    $where : { 
+      col_name1 : value 
+    },
+    $order : [{
+      $asc : col_name1
+    }],
+    $limit : 10,
+    $skip : 20
+  }
+```
+
+### where clause
+#### operator =
 Select records where **col_name** = **value**
 ```json
 { col_name : value }
+
 ```
 
-## TODO
-### operator contains
+#### operator contains
 Select records where **col_name** contains **value**
 ```json
 { col_name : { 
@@ -49,7 +81,7 @@ Select records where **col_name** contains **value**
 }
 ```
 
-### operator greater than
+#### operator greater than
 Select records where **col_name** is greater than **value**
 ```json
 { col_name : { 
@@ -58,7 +90,7 @@ Select records where **col_name** is greater than **value**
 }
 ```
 
-### operator greater than or equal
+#### operator greater than or equal
 Select records where **col_name** is greater than or equal to **value**
 ```json
 { col_name : { 
@@ -67,7 +99,7 @@ Select records where **col_name** is greater than or equal to **value**
 }
 ```
 
-### operator less than
+#### operator less than
 Select records where **col_name** is lesser than **value**
 ```json
 { col_name : { 
@@ -76,7 +108,7 @@ Select records where **col_name** is lesser than **value**
 }
 ```
 
-### operator less than or equal
+#### operator less than or equal
 Select records where **col_name** is lesser than or equal to **value**
 ```json
 { col_name : { 
@@ -85,7 +117,7 @@ Select records where **col_name** is lesser than or equal to **value**
 }
 ```
 
-### operator not equal
+#### operator not equal
 Select records where **col_name** is not equal to **value**
 ```json
 { col_name : { 
@@ -94,7 +126,7 @@ Select records where **col_name** is not equal to **value**
 }
 ```
 
-### operator between
+#### operator between
 Select records where **col_name** is between greater than **value1** and lesser than **value2** 
 ```json
 { col_name : { 
@@ -104,27 +136,27 @@ Select records where **col_name** is between greater than **value1** and lesser 
 }
 ```
 
-### operator or
+#### operator or
 Select records where either of the expressions are true
 ```json
 { $or : [ { <expression1> }, { <expression2> }, ... , { <expressionN> } ] }
 ```
 
-### operator and
+#### operator and
 Select records where all of the expressions are true
 ```json
 { $and: [ { col_name: { $ne: 1.99 } }, { col_name: { $exists: true } } ] }
 { col_name: { $ne: 1.99, $exists: true } }
 ```
 
-### operator exist
+#### operator exist
 Ensures records returned do not have col_name value that is NULL
 ```json
-{ col_name: { $exist: true} }
+{ col_name: { $exist: true } }
 ```
 
-### operator distinct
+#### operator distinct
 Returns distinct values in col_name
 ```json
-{ $distinct : col_name }
+{ col_name: { $distinct: true } }
 ```
