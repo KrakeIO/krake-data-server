@@ -32,7 +32,9 @@ coffee krake_data_server.coffee
 ```
 
 # Query Operators
-HTTP GET Request to query Krake data server for data
+HTTP GET Request to query Krake data server for data. 
+Important: Operators made available are restricted to ones that are indempotent of nature
+
 ```console
 http://krake-data-server/:table_name/search/:format?q=query_object
 ```

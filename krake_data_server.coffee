@@ -124,7 +124,15 @@ app.get '/', (req, res)->
 app.get '/:table_name/batches', (req, res)=>
   cm.getBatches req.params.table_name, (batches)=>
     res.send batches
-  
+
+
+# @Description : clears all the cache generated for table
+app.get '/:table_name/clear_cache', (req, res)=>
+  cm.clearCache req.params.table_name, (err, status)=>
+    if err
+      res.send {status: "failed", error: err}
+    else
+      res.send {status: "success"}
 
 
 # @Description : Returns an object with two arrays 1) records updated today, 2) records deleted today

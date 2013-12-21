@@ -153,6 +153,15 @@ class CacheManager
         callback && callback null, pathToFile
 
 
+
+  # @Description : clears the cached records for a table
+  # @param : tableName:string
+  # @param : callback:function(error:String, status:Boolean)->
+  clearCache: (tableName, callback)->
+    callback && callback null, true
+
+
+
   # @Description : generates a cached record
   # @param : tableName:String
   # @param : columns:array
