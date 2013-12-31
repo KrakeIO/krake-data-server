@@ -54,7 +54,13 @@ A JSON object that contains the following clauses
 
 ```json
 http://krake-data-server/:table_name/search/:format?q={ 
-    $select : [ col_name1, col_name2, col_name3, col_name4 ],
+    $select : [{ 
+      $int: col_name1 
+    },{ 
+      $string: col_name2
+    },{ 
+      $float: col_name3 
+    }],
     $where : { 
       col_name1 : value 
     },
@@ -66,7 +72,46 @@ http://krake-data-server/:table_name/search/:format?q={
   }
 ```
 
-### where clause
+
+### $select clause
+
+#### operator $int
+Returns values corresponding to col_name casted as integer
+```json
+{ $int: col_name }
+```
+
+#### operator $float
+Returns values corresponding to col_name casted as float
+```json
+{ $float: col_name }
+```
+
+#### operator $string
+Returns values corresponding to col_name casted as string
+```json
+{ $string: col_name }
+```
+
+#### operator $max
+Returns the max value corresponding to col_name
+```json
+{ $max: col_name }
+```
+
+#### operator $min
+Returns the max value corresponding to col_name
+```json
+{ $max: col_name }
+```
+
+#### operator $distinct
+Returns distinct values in col_name
+```json
+{ $distinct: col_name }
+```
+
+### $where clause
 #### operator =
 Select records where **col_name** = **value**
 ```json
@@ -74,7 +119,7 @@ Select records where **col_name** = **value**
 
 ```
 
-#### operator contains
+#### operator $contains
 Select records where **col_name** contains **value**
 ```json
 { col_name : { 
@@ -83,7 +128,7 @@ Select records where **col_name** contains **value**
 }
 ```
 
-#### operator greater than
+#### operator $gt
 Select records where **col_name** is greater than **value**
 ```json
 { col_name : { 
@@ -92,7 +137,7 @@ Select records where **col_name** is greater than **value**
 }
 ```
 
-#### operator greater than or equal
+#### operator $gte
 Select records where **col_name** is greater than or equal to **value**
 ```json
 { col_name : { 
@@ -101,7 +146,7 @@ Select records where **col_name** is greater than or equal to **value**
 }
 ```
 
-#### operator less than
+#### operator $lt
 Select records where **col_name** is lesser than **value**
 ```json
 { col_name : { 
@@ -110,7 +155,7 @@ Select records where **col_name** is lesser than **value**
 }
 ```
 
-#### operator less than or equal
+#### operator $lte
 Select records where **col_name** is lesser than or equal to **value**
 ```json
 { col_name : { 
@@ -119,7 +164,7 @@ Select records where **col_name** is lesser than or equal to **value**
 }
 ```
 
-#### operator not equal
+#### operator $ne
 Select records where **col_name** is not equal to **value**
 ```json
 { col_name : { 
@@ -138,27 +183,21 @@ Select records where **col_name** is between greater than **value1** and lesser 
 }
 ```
 
-#### operator or
+#### operator $or
 Select records where either of the expressions are true
 ```json
 { $or : [ { <expression1> }, { <expression2> }, ... , { <expressionN> } ] }
 ```
 
-#### operator and
+#### operator $and
 Select records where all of the expressions are true
 ```json
 { $and: [ { col_name: { $ne: 1.99 } }, { col_name: { $exists: true } } ] }
 { col_name: { $ne: 1.99, $exists: true } }
 ```
 
-#### operator exist
+#### operator $exist
 Ensures records returned do not have col_name value that is NULL
 ```json
 { col_name: { $exist: true } }
-```
-
-#### operator distinct
-Returns distinct values in col_name
-```json
-{ col_name: { $distinct: true } }
 ```
