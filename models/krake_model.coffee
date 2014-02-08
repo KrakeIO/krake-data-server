@@ -35,7 +35,8 @@ class KrakeModel
     
   getQuery : (query_obj)->
     query_string = 'SELECT ' + @selectClause(query_obj) + 
-      ' FROM "' + @repo_name + '" ' + @whereClause(query_obj)
+      ' FROM "' + @repo_name + '" ' + 
+      ' WHERE ' + @whereClause(query_obj)
 
   selectClause : (query_obj)->
     query = ""
@@ -55,25 +56,26 @@ class KrakeModel
     query
 
   whereClause : (query_obj)->
-    query = []
-    if query_obj.$where 
-      for condition_obj in query_obj.$where then do (condition_obj)=>
-        col_name = Object.keys(condition_obj)[0]
-        switch typeof(condition_obj[col_name])
+    return "true" unless query_obj.$where 
 
-          when "string" # Operators : = 
-            if col_name in @common_cols
-              query.push "'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
-            else
-              query.push "properties->'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
+    query = ['true']
+    for condition_obj in query_obj.$where then do (condition_obj)=>
+      col_name = Object.keys(condition_obj)[0]
+      switch typeof(condition_obj[col_name])
 
-          when "array" # Operators : $and, $or 
-            console.log "is an array"
+        when "string" # Operators : = 
+          if col_name in @common_cols
+            query.push "'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
+          else
+            query.push "properties->'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
 
-          when "object" # Operators : $contains, $gt, $gte, $lt, $lte, $ne, $exist
-            operator = Object.keys(condition_obj[col_name])[0]
+        when "array" # Operators : $and, $or 
+          console.log "is an array"
+
+        when "object" # Operators : $contains, $gt, $gte, $lt, $lte, $ne, $exist
+          operator = Object.keys(condition_obj[col_name])[0]
       
-    query.join("and")
+    query.join(" and ")
 
   limitClause : (query_obj)->
 

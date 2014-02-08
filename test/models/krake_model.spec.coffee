@@ -93,7 +93,7 @@ describe "KrakeModel", ->
 
     it "should not return any where condition if there are not where conditions in query_obj", (done)->
       where_clause = @km.whereClause {}
-      expect(where_clause).toEqual ""
+      expect(where_clause).toEqual "true"
       done()      
 
     it "should return well formated '=' where condition for common column", (done)->
@@ -102,7 +102,7 @@ describe "KrakeModel", ->
           pingedAt : "2013-07-06 02:57:09"
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "'pingedAt' = '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "true and 'pingedAt' = '2013-07-06 02:57:09'"
       done()
 
     it "should return well formated '=' where condition for repository specific column", (done)->
@@ -111,7 +111,7 @@ describe "KrakeModel", ->
           col1 : "the test"
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "properties->'col1' = 'the test'"
+      expect(where_clause).toEqual "true and properties->'col1' = 'the test'"
       done()
 
     it "should return well formated 'contains' where condition"
