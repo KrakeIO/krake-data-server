@@ -1,7 +1,6 @@
 # Krake's Data Server
 
-The system that interfaces the exporting of harvested data from Krake's web scraping engine
-used in [Krake's Web Scraping Engine] (https://krake.io)
+Provides RESTFUL API for Postgresql HSTORE database used in [Krake's Data Harvesting Engine] (https://krake.io)
 
 ## Pre-requisities
 - NodeJS — v0.8.8
