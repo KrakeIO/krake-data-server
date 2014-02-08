@@ -198,7 +198,7 @@ $where : [{
 
 ### Multi-nested compound operators mixture 
 #### operator $and and $or
-Select records where col1 = "value for col1" and either col2 = "value for col2" or col3 = "value for col3"
+Select records where col1 = "value for col1" and (col2 = "value for col2" or col3 = "value for col3") 
 ```json
 $where : [{ 
   $and: [ 
