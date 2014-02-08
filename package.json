@@ -15,6 +15,7 @@
     , "kson": "https://github.com/KrakeIO/kson/tarball/master"
     , "pg" : ""
     , "pg-hstore" : ""
+    , "rimraf": ""
     , "sequelize": ""
   }
 }

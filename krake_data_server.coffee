@@ -33,13 +33,13 @@ options.pool = pool
 userName = process.env['KRAKE_PG_USERNAME'] || CONFIG.postgres.username
 password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
-dbHandler = new Sequelize CONFIG.postgres.database, userName, password, options
-db_dev = new Sequelize CONFIG.userDataDB, userName, password, options
+dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
+dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 krakeSchema = ktk.schema.krake
-Krake = db_dev.define 'krakes', krakeSchema
+Krake = dbSystem.define 'krakes', krakeSchema
 
 recordBody = require './schema/record'
-cm = new CacheController CONFIG.cachePath, dbHandler, recordBody
+cm = new CacheController CONFIG.cachePath, dbRepo, recordBody
 
 # @Description : Converts raw query input value to actual stuff
 queryValue = (raw_input)=>
@@ -134,19 +134,9 @@ app.get '/:table_name/clear_cache', (req, res)=>
     else
       res.send {status: "success"}
 
-
-# @Description : Returns an object with two arrays 1) records updated today, 2) records deleted today
-app.get '/:table_name/diff/:format/:date', (req, res)=>
-  km = new KrakeModel db_dev, req.params.table_name, ()=>
-    cm.getDiffCache km, req.params.date, req.params.format, (err, pathToCache)=>  
-      if req.params.format == 'csv' then res.header 'Content-Disposition', 'attachment;filename=' + req.params.table_name + '.csv'
-      fs.createReadStream(pathToCache).pipe res
-
-
-
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:table_name/search/:format', (req, res)=>
-  km = new KrakeModel db_dev, req.params.table_name, ()=>
+  km = new KrakeModel dbSystem, req.params.table_name, ()=>
     query_string = 'SELECT ' + km.getColumnsQuery() + ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
       ' FROM "' + req.params.table_name + '" ' + whereClause(req.query.q)
 
@@ -163,27 +153,7 @@ app.get '/:table_name/search/:format', (req, res)=>
       when 'html'
         cm.getCache req.params.table_name, km.columns, km.url_columns, query_string, req.params.format, (err, pathToCache)->
           fs.createReadStream(pathToCache).pipe res
-          
-          
-          
-# @Description : Gets total records harvested in batch
-app.get '/:table_name/count', (req, res)=>
-  km = new KrakeModel db_dev, req.params.table_name, ()=>
-    queryString = 'SELECT count(*) FROM "' + req.params.table_name + '" ' + whereClause (req.query.q)
-    dbHandler.query(queryString).success(
-      (rows)=>
-        if rows.length > 0 
-          res.send rows[0]
-        else
-          res.send { "count" : 0 }
-    ).error(
-      (e)=>
-        console.log "Error occured while fetching count \nError: " + e
-        res.send { "count" : 0 }
-    )    
     
-
-
 # Start api server
 port = process.argv[2] || 9803
 app.listen port
