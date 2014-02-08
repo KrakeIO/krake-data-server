@@ -28,7 +28,6 @@ dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
 dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 
 recordBody = require '../../schema/record'
-CacheController = require '../../controllers/cache_controller'
 KrakeModel = require '../../models/krake_model'
 krake_definition = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
 
