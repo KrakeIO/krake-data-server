@@ -93,7 +93,7 @@ describe "KrakeModel", ->
 
     it "should not return any where condition if there are not where conditions in query_obj", (done)->
       where_clause = @km.whereClause {}
-      expect(where_clause).toEqual "true"
+      expect(where_clause).toEqual ""
       done()      
 
     it "should return well formated '=' where condition for common column", (done)->
@@ -102,7 +102,7 @@ describe "KrakeModel", ->
           pingedAt : "2013-07-06 02:57:09"
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "true and 'pingedAt' = '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "'pingedAt' = '2013-07-06 02:57:09'"
       done()
 
     it "should return well formated '=' where condition for repository specific column", (done)->
@@ -111,23 +111,245 @@ describe "KrakeModel", ->
           col1 : "the test"
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "true and properties->'col1' = 'the test'"
+      expect(where_clause).toEqual "properties->'col1' = 'the test'"
       done()
 
-    it "should return well formated 'contains' where condition"
+    it "should return well formated 'contains' where condition for common column", (done)->
+      query_obj = 
+        $where : [{
+          pingedAt : { $contains : "2013-07-06 02:57:09" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' like '%2013-07-06 02:57:09%'"
+      done()
 
-    it "should return well formated '>' where condition"
+    it "should return well formated 'contains' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          col1 : { $contains : "the test" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "properties->'col1' like '%the test%'"
+      done()
 
-    it "should return well formated '>=' where condition"
+    it "should return well formated '>' where condition for common column", (done)->
+      query_obj = 
+        $where : [{
+          pingedAt : { $gt : "2013-07-06 02:57:09" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' > '2013-07-06 02:57:09'"
+      done()      
 
-    it "should return well formated '<' where condition"
+    it "should return well formated '>' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          col1 : { $gt : "the test" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "properties->'col1' > 'the test'"
+      done()
 
-    it "should return well formated '<=' where condition"
+    it "should return well formated '>=' where condition for common column", (done)->
+      query_obj = 
+        $where : [{
+          pingedAt : { $gte : "2013-07-06 02:57:09" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' >= '2013-07-06 02:57:09'"
+      done()      
 
-    it "should return well formated '!=' where condition"
+    it "should return well formated '>=' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          col1 : { $gte : "the test" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "properties->'col1' >= 'the test'"
+      done()
 
-    it "should return well formated 'and' where condition"
+    it "should return well formated '<' where condition for common column", (done)->
+      query_obj = 
+        $where : [{
+          pingedAt : { $lt : "2013-07-06 02:57:09" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' < '2013-07-06 02:57:09'"
+      done()      
 
-    it "should return well formated 'or' where condition"
+    it "should return well formated '<' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          col1 : { $lt : "the test" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "properties->'col1' < 'the test'"
+      done()
 
-    it "should return well formated '!=null' where condition"
+    it "should return well formated '<=' where condition for common column", (done)->
+      query_obj = 
+        $where : [{
+          pingedAt : { $lte : "2013-07-06 02:57:09" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' <= '2013-07-06 02:57:09'"
+      done()      
+
+    it "should return well formated '<=' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          col1 : { $lte : "the test" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "properties->'col1' <= 'the test'"
+      done()
+
+    it "should return well formated '!=' where condition for common column", (done)->
+      query_obj = 
+        $where : [{
+          pingedAt : { $ne : "2013-07-06 02:57:09" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' != '2013-07-06 02:57:09'"
+      done()      
+
+    it "should return well formated '!=' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          col1 : { $ne : "the test" }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "properties->'col1' != 'the test'"
+      done()
+
+    it "should return well formated 'not null' where condition for common column", (done)->
+      query_obj = 
+        $where : [{
+          pingedAt : { $exist : true }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' not NULL"
+      done()
+
+    it "should return well formated 'not null' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          col1 : { $exist : true }
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "properties->'col1' not NULL"
+      done()
+
+    it "should return well formated 'and' where condition for common column without use of precedence", (done)->
+      query_obj = 
+        $where : [{
+            pingedAt : "2013-07-06 02:57:09"
+          },{
+            updatedAt : "2013-07-06 02:57:09"
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "'pingedAt' = '2013-07-06 02:57:09' and 'updatedAt' = '2013-07-06 02:57:09'"
+      done()    
+
+    it "should return well formated 'and' where condition for common column non nested", (done)->
+      query_obj = 
+        $where : [{
+          $and : [{
+              pingedAt : "2013-07-06 02:57:09"
+            },{
+              updatedAt : "2013-07-06 02:57:09"
+          }]
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "('pingedAt' = '2013-07-06 02:57:09' and 'updatedAt' = '2013-07-06 02:57:09')"
+      done()
+
+    it "should return well formated 'and' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          $and : [{
+              col1 : "the test1"
+            },{
+              col2 : "the test2"
+          }]
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "(properties->'col1' = 'the test1' and properties->'col2' = 'the test2')"
+      done()
+
+    it "should return well formated 'or' where condition for common column non nested", (done)->
+      query_obj = 
+        $where : [{
+          $or : [{
+              pingedAt : "2013-07-06 02:57:09"
+            },{
+              updatedAt : "2013-07-06 02:57:09"
+          }]
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "('pingedAt' = '2013-07-06 02:57:09' or 'updatedAt' = '2013-07-06 02:57:09')"
+      done()
+
+    it "should return well formated 'or' where condition for repository specific column", (done)->
+      query_obj = 
+        $where : [{
+          $or : [{
+              col1 : "the test1"
+            },{
+              col2 : "the test2"
+          }]
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "(properties->'col1' = 'the test1' or properties->'col2' = 'the test2')"
+      done()
+
+    it "should return well formated multi nested 'and' where condition for common column non nested", (done)->
+      query_obj = 
+        $where : [{
+          $and : [{
+              pingedAt : "2013-07-06 02:57:09"
+            },{
+              $and : [{
+                  updatedAt : "2013-07-06 02:57:09",
+                },{
+                  createdAt : "2013-07-06 02:57:09",
+              }]
+          }]
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "('pingedAt' = '2013-07-06 02:57:09' and ('updatedAt' = '2013-07-06 02:57:09' and 'createdAt' = '2013-07-06 02:57:09'))"
+      done()
+
+    it "should return well formated multi nested 'or' where condition for common column non nested", (done)->
+      query_obj = 
+        $where : [{
+          $or : [{
+              pingedAt : "2013-07-06 02:57:09"
+            },{
+              $or : [{
+                  updatedAt : "2013-07-06 02:57:09",
+                },{
+                  createdAt : "2013-07-06 02:57:09",
+              }]
+          }]
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "('pingedAt' = '2013-07-06 02:57:09' or ('updatedAt' = '2013-07-06 02:57:09' or 'createdAt' = '2013-07-06 02:57:09'))"
+      done()
+
+    it "should return well formated multi nested 'or' || 'and' where condition for common column non nested", (done)->
+      query_obj = 
+        $where : [{
+          $or : [{
+              pingedAt : "2013-07-06 02:57:09"
+            },{
+              $and : [{
+                  updatedAt : "2013-07-06 02:57:09",
+                },{
+                  createdAt : "2013-07-06 02:57:09",
+              }]
+          }]
+        }]
+      where_clause = @km.whereClause query_obj
+      expect(where_clause).toEqual "('pingedAt' = '2013-07-06 02:57:09' or ('updatedAt' = '2013-07-06 02:57:09' and 'createdAt' = '2013-07-06 02:57:09'))"
+      done()    

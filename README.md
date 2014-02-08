@@ -163,6 +163,15 @@ $where : [{
 }]
 ```
 
+#### operator $exist
+Ensures records returned do not have col_name value that is NULL
+```json
+$where : [{ 
+  col_name: { $exist: true } 
+}]
+```
+
+### Compound operators
 #### operator $or
 Select records where either of the expressions are true
 ```json
@@ -187,10 +196,20 @@ $where : [{
 
 ```
 
-#### operator $exist
-Ensures records returned do not have col_name value that is NULL
+#### Multi-nested compound operators
+#### operator $and
+Select records where all of the expressions are true
 ```json
 $where : [{ 
-  col_name: { $exist: true } 
+  $and: [ 
+    { col1: "value for col1" },
+    {  
+      $or: [
+        { col2: "value for col2" },
+        { col3: "value for col3" }
+      ]
+    }
+  ] 
 }]
+
 ```

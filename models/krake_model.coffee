@@ -34,9 +34,9 @@ class KrakeModel
     @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).success(gotKrakes).error(couldNotGetKrakes)
     
   getQuery : (query_obj)->
-    query_string = 'SELECT ' + @selectClause(query_obj) + 
-      ' FROM "' + @repo_name + '" ' + 
-      ' WHERE ' + @whereClause(query_obj)
+    query_string =  'SELECT ' + @selectClause(query_obj) + 
+                    ' FROM "' + @repo_name + '" ' + 
+                    ' WHERE ' + (@whereClause(query_obj) || 'true')
 
   selectClause : (query_obj)->
     query = ""
@@ -56,24 +56,53 @@ class KrakeModel
     query
 
   whereClause : (query_obj)->
-    return "true" unless query_obj.$where 
+    return "" unless query_obj.$where 
 
-    query = ['true']
+    query = []
     for condition_obj in query_obj.$where then do (condition_obj)=>
       col_name = Object.keys(condition_obj)[0]
+      sub_query = ""
       switch typeof(condition_obj[col_name])
+        when "string" # Operators : =
+          sub_query = "'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
 
-        when "string" # Operators : = 
-          if col_name in @common_cols
-            query.push "'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
-          else
-            query.push "properties->'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
+        when "object"
+          if condition_obj[col_name] instanceof Array  # Operators : $and, $or
+            switch col_name
+              when "$or"
+                sub_query  = "(" + condition_obj[col_name].map((sub_condition)=>
+                  @whereClause({ $where : [sub_condition] })
+                ).join(" or ") + ")"
 
-        when "array" # Operators : $and, $or 
-          console.log "is an array"
+              when "$and" 
+                sub_query = "(" + @whereClause({ $where : condition_obj[col_name] }) + ")"
 
-        when "object" # Operators : $contains, $gt, $gte, $lt, $lte, $ne, $exist
-          operator = Object.keys(condition_obj[col_name])[0]
+          else  # Operators : $contains, $gt, $gte, $lt, $lte, $ne, $exist
+            operator = Object.keys(condition_obj[col_name])[0]
+            switch operator
+              when "$contains"
+                sub_query = "'" + col_name + "'" + " like '%" + condition_obj[col_name][operator] + "%'"
+
+              when "$gt"
+                sub_query = "'" + col_name + "'" + " > '" + condition_obj[col_name][operator] + "'"
+
+              when "$gte"
+                sub_query = "'" + col_name + "'" + " >= '" + condition_obj[col_name][operator] + "'"
+
+              when "$lt"
+                sub_query = "'" + col_name + "'" + " < '" + condition_obj[col_name][operator] + "'"
+
+              when "$lte"
+                sub_query = "'" + col_name + "'" + " <= '" + condition_obj[col_name][operator] + "'"
+
+              when "$ne"
+                sub_query = "'" + col_name + "'" + " != '" + condition_obj[col_name][operator] + "'"
+
+              when "$exist"
+                sub_query = "'" + col_name + "'" + " not NULL"
+
+      if(col_name not in @common_cols) && (col_name not in ["$and", "$or"]) then sub_query = "properties->" + sub_query  
+      query.push sub_query
       
     query.join(" and ")
 
