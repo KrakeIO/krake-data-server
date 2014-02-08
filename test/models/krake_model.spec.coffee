@@ -35,38 +35,64 @@ krake_definition = fs.readFileSync(__dirname + '/../fixtures/krake_definition.js
 describe "KrakeModel", ->
 
   beforeEach (done)->
-    @repo_name = "test_tables"
+    @dbRepo = dbRepo    
+    @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
     @Krake = dbSystem.define 'krakes', krakeSchema 
+
+    # Force create dataSchema table in test database
     @Krake.sync({force: true}).success ()=>
-      @Krake.create({ content: krake_definition, handle: @repo_name}).success ()->  
-        done()
+      @Krake.create({ content: krake_definition, handle: @repo_name}).success ()=>
+
+        # Force create dataRepository table in test database
+        @Records = dbRepo.define @repo_name, recordBody  
+        @Records.sync({force: true}).success ()=>
+
+          # instantiates a krake model
+          @km = new KrakeModel dbSystem, @repo_name, ()->
+            done()
 
   it "should have columns", (done)->
     km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
       expect(km.columns.length).toEqual 6
       done()
 
-  describe "selectClause", ->
-    beforeEach (done)-> 
-      @km = new KrakeModel dbSystem, @repo_name, ()->
-        done()
+  describe "getQuery", =>
+    it "should call all the sub clauses", (done)->
+      spyOn(@km, 'selectClause').andCallThrough()
+      spyOn(@km, 'whereClause').andCallThrough()
+      query_string = @km.getQuery({})
+      expect(()=>  
+        @dbRepo.query query_string
+      ).not.toThrow()      
+      expect(@km.selectClause).toHaveBeenCalled()
+      expect(@km.whereClause).toHaveBeenCalled()
+      done()
 
+    it "should call all the sub clauses", (done)->
+      spyOn(@km, 'selectClause').andCallThrough()
+      spyOn(@km, 'whereClause').andCallThrough()
+      query_string = @km.getQuery({})
+      expect(()=>
+        @dbRepo.query query_string
+      ).not.toThrow()
+      done()
+
+  describe "selectClause", ->
     it "should return the properly formatted common columns ", (done)->
       select_clause = @km.selectClause { $select : [] }
-      expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'
+      expect(select_clause).toEqual '1'
       done()
 
     it "should not return duplicated common columns ", (done)->
       select_clause = @km.selectClause { $select : ["createdAt"] }
-      expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'
+      expect(select_clause).toEqual '"createdAt"'
       done()
 
     it "should return the properly formatted repository columns", (done)->
       select_clause = @km.selectClause { $select : ["col1", "col2"] }
 
       expected_query =  "properties::hstore->'col1' as \"col1\"" +
-                        ",properties::hstore->'col2' as \"col2\"" +
-                        ',"createdAt","updatedAt","pingedAt"'
+                        ",properties::hstore->'col2' as \"col2\""
       expect(select_clause).toEqual expected_query
       done()
 
@@ -78,56 +104,120 @@ describe "KrakeModel", ->
                         'properties::hstore->\'categories\' as "categories",' +
                         'properties::hstore->\'therapeutic indication\' as "therapeutic indication",' +
                         'properties::hstore->\'origin_url\' as "origin_url",' +
-                        'properties::hstore->\'origin_pattern\' as "origin_pattern",' +
-                        '"createdAt","updatedAt","pingedAt"'
+                        'properties::hstore->\'origin_pattern\' as "origin_pattern"'
       expect(select_clause).toEqual expected_query
       done()
 
-    it "should return properly formatted common columns for $count", (done)->
-      select_clause = @km.selectClause { $select : [{ $count : "pingedAt" }] }
-      expect(select_clause).toEqual 'count("pingedAt" as text) as "pingedAt","createdAt","updatedAt"'
+    it "should not create an invalid normal select statement", (done)->
+      query_string = @km.getQuery({})
+      expect(()=>  
+        @dbRepo.query query_string
+      ).not.toThrow()
       done()
 
-    it "should return properly formatted repository columns for $count", (done)->
-      select_clause = @km.selectClause { $select : [{ $count : "col1" }] }
-      expect(select_clause).toEqual 'count(properties::hstore->\'col1\' as text) as "col1","createdAt","updatedAt","pingedAt"'
-      done()
 
-    it "should return properly formatted common columns for $distinct", (done)->
-      select_clause = @km.selectClause { $select : [{ $distinct : "pingedAt" }] }
-      expect(select_clause).toEqual 'distinct cast("pingedAt" as text) as "pingedAt","createdAt","updatedAt"'
-      done()
-
-    it "should return properly formatted repository columns for $distinct", (done)->
-      select_clause = @km.selectClause { $select : [{ $distinct : "col1" }] }
-      expect(select_clause).toEqual 'distinct cast(properties::hstore->\'col1\' as text) as "col1","createdAt","updatedAt","pingedAt"'
-      done()
-
-    it "should return properly formatted common columns for $max", (done)->
-      select_clause = @km.selectClause { $select : [{ $max : "pingedAt" }] }
-      expect(select_clause).toEqual 'max(cast("pingedAt" as integer)) as "pingedAt","createdAt","updatedAt"'
-      done()
-
-    it "should return properly formatted repository columns for $max", (done)->
-      select_clause = @km.selectClause { $select : [{ $max : "col1" }] }
-      expect(select_clause).toEqual 'max(cast(properties::hstore->\'col1\' as integer)) as "col1","createdAt","updatedAt","pingedAt"'
-      done()
-
-    it "should return properly formatted common columns for $min", (done)->
-      select_clause = @km.selectClause { $select : [{ $min : "pingedAt" }] }
-      expect(select_clause).toEqual 'min(cast("pingedAt" as integer)) as "pingedAt","createdAt","updatedAt"'
-      done()
-
-    it "should return properly formatted repository columns for $min", (done)->
-      select_clause = @km.selectClause { $select : [{ $min : "col1" }] }
-      expect(select_clause).toEqual 'min(cast(properties::hstore->\'col1\' as integer)) as "col1","createdAt","updatedAt","pingedAt"'
-      done()
-
-  describe "whereClause", ->
-    beforeEach (done)-> 
-      @km = new KrakeModel dbSystem, @repo_name, ()->
+    describe "$count", ->
+      it "should return properly formatted common columns for $count", (done)->
+        select_clause = @km.selectClause { $select : [{ $count : "pingedAt" }] }
+        expect(select_clause).toEqual 'count("pingedAt") as "pingedAt"'
         done()
 
+      it "should return properly formatted repository columns for $count", (done)->
+        select_clause = @km.selectClause { $select : [{ $count : "col1" }] }
+        expect(select_clause).toEqual 'count(properties::hstore->\'col1\') as "col1"'
+        done()
+
+      it "should not create an invalid $count select statement for common columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $count : "pingedAt" }] })
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+      it "should not create an invalid $count select statement for repository columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $count : @km.columns[0] }] })
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+    describe "$distinct", ->
+      it "should return properly formatted common columns for $distinct", (done)->
+        select_clause = @km.selectClause { $select : [{ $distinct : "pingedAt" }] }
+        expect(select_clause).toEqual 'distinct cast("pingedAt" as text) as "pingedAt"'
+        done()
+
+      it "should return properly formatted repository columns for $distinct", (done)->
+        select_clause = @km.selectClause { $select : [{ $distinct : "col1" }] }
+        expect(select_clause).toEqual 'distinct cast(properties::hstore->\'col1\' as text) as "col1"'
+        done()
+
+      it "should not create an invalid $distinct select statement for common columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $distinct : "pingedAt" }] })
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+      it "should not create an invalid $distinct select statement for repository columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $distinct : @km.columns[0] }] })
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+    describe "$max", ->
+      it "should return properly formatted common columns for $max", (done)->
+        select_clause = @km.selectClause { $select : [{ $max : "pingedAt" }] }
+        expect(select_clause).toEqual 'max("pingedAt") as "pingedAt"'
+        done()
+
+      it "should return properly formatted repository columns for $max", (done)->
+        select_clause = @km.selectClause { $select : [{ $max : "col1" }] }
+        expect(select_clause).toEqual 'max(properties::hstore->\'col1\') as "col1"'
+        done()
+
+      it "should not create an invalid $distinct select statement for common columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $max : "pingedAt" }] })
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+      it "should not create an invalid $distinct select statement for repository columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $max : @km.columns[0] }] })
+        console.log query_string
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+    describe "$min", ->
+      it "should return properly formatted common columns for $min", (done)->
+        select_clause = @km.selectClause { $select : [{ $min : "pingedAt" }] }
+        expect(select_clause).toEqual 'min("pingedAt") as "pingedAt"'
+        done()
+
+      it "should return properly formatted repository columns for $min", (done)->
+        select_clause = @km.selectClause { $select : [{ $min : "col1" }] }
+        expect(select_clause).toEqual 'min(properties::hstore->\'col1\') as "col1"'
+        done()
+
+      it "should not create an invalid $min select statement for common columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $min : "pingedAt" }] })
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+      it "should not create an invalid $min select statement for repository columns", (done)->
+        query_string = @km.getQuery({ $select : [{ $min : @km.columns[0] }] })
+        expect(()=>  
+          @dbRepo.query query_string
+        ).not.toThrow()
+        done()
+
+  describe "whereClause", ->
     it "should not return any where condition if there are not where conditions in query_obj", (done)->
       where_clause = @km.whereClause {}
       expect(where_clause).toEqual ""

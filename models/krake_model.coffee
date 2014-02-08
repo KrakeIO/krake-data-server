@@ -55,9 +55,9 @@ class KrakeModel
           switch operator
             when "$count"
               if column[operator] in @common_cols
-                'count("' + column[operator].replace(/'/, '\\\'') + '" as text) as "' + column[operator].replace(/'/, '\\\'') + '"'
+                'count("' + column[operator].replace(/'/, '\\\'') + '") as "' + column[operator].replace(/'/, '\\\'') + '"'
               else
-                "count(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as text) as \"" + column[operator].replace(/""/, '\\\""') + "\""             
+                "count(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "') as \"" + column[operator].replace(/""/, '\\\""') + "\""             
 
             when "$distinct"
               if column[operator] in @common_cols
@@ -67,29 +67,30 @@ class KrakeModel
                 
             when "$max"
               if column[operator] in @common_cols
-                'max(cast("' + column[operator].replace(/'/, '\\\'') + '" as integer)) as "' + column[operator].replace(/'/, '\\\'') + '"'
+                'max("' + column[operator].replace(/'/, '\\\'') + '") as "' + column[operator].replace(/'/, '\\\'') + '"'
               else
-                "max(cast(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as integer)) as \"" + column[operator].replace(/""/, '\\\""') + "\""
+                "max(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "') as \"" + column[operator].replace(/""/, '\\\""') + "\""
 
             when "$min"
               if column[operator] in @common_cols
-                'min(cast("' + column[operator].replace(/'/, '\\\'') + '" as integer)) as "' + column[operator].replace(/'/, '\\\'') + '"'
+                'min("' + column[operator].replace(/'/, '\\\'') + '") as "' + column[operator].replace(/'/, '\\\'') + '"'
               else
-                "min(cast(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as integer)) as \"" + column[operator].replace(/""/, '\\\""') + "\""
+                "min(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "') as \"" + column[operator].replace(/""/, '\\\""') + "\""
 
 
     ).join(",")
 
-    query += "," unless !sel_cols || sel_cols.length == 0
-    query += @common_cols.filter((col)=>
-        col not in sel_cols.map ((sel_col)=>
-          switch typeof(sel_col)
-            when "string" then sel_col
-            when "object" then sel_col[Object.keys(sel_col)[0]]
-        )
-      ).map((col)->
-        JSON.stringify(col)
-      ).join(",")
+    # query += "," unless !sel_cols || sel_cols.length == 0
+    # query += @common_cols.filter((col)=>
+    #     col not in sel_cols.map ((sel_col)=>
+    #       switch typeof(sel_col)
+    #         when "string" then sel_col
+    #         when "object" then sel_col[Object.keys(sel_col)[0]]
+    #     )
+    #   ).map((col)->
+    #     JSON.stringify(col)
+    #   ).join(",")
+    query = "1" if sel_cols.length == 0
     query
 
   whereClause : (query_obj)->
