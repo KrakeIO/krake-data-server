@@ -63,6 +63,9 @@ http://krake-data-server/:table_name/search/:format?q={
 
 
 ### $select clause
+```json
+$select : [col_name1, col_name2, ..., col_name2]
+```
 
 #### operator simple
 Returns all the values in col_name
@@ -95,6 +98,10 @@ $select : [{ $max: col_name }]
 
 
 ### $where clause
+```json
+$where : [{condition1}, {condition2}, {condition3}... {conditionN}]
+```
+
 #### operator =
 Select records where **col_name** = **value**
 ```json
