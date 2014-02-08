@@ -78,6 +78,14 @@ describe "KrakeModel", ->
       expect(select_clause).toEqual expected_query
       done()
 
+    it "should return $count"
+
+    it "should return $distinct"
+
+    it "should return $max"
+
+    it "should return $min"
+
   describe "whereClause", ->
     beforeEach (done)-> 
       @km = new KrakeModel dbSystem, @repo_name, ()->

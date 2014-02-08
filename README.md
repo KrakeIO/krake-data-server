@@ -76,22 +76,34 @@ http://krake-data-server/:table_name/search/:format?q={
 ### $select clause
 
 #### operator simple
-Returns distinct values in col_name
+Returns all the values in col_name
 ```json
 $select : [col_name]
 ```
 
 #### operator $count
-Returns distinct values in col_name
+Returns a count of the rows
 ```json
-$select : [{ $count: col_name }]
+$select : [{ $count: true }]
 ```
 
 #### operator $distinct
-Returns distinct values in col_name
+Returns distinct values from col_name
 ```json
 $select : [{ $distinct: col_name }]
 ```
+#### operator $max
+Returns the max value in col_name
+```json
+$select : [{ $max: col_name }]
+```
+
+#### operator $min
+Returns the max value in col_name
+```json
+$select : [{ $max: col_name }]
+```
+
 
 ### $where clause
 #### operator =
