@@ -109,89 +109,98 @@ $select : [{ $max: col_name }]
 #### operator =
 Select records where **col_name** = **value**
 ```json
-{ col_name : value }
+$where : [{ col_name : value }]
 
 ```
 
 #### operator $contains
 Select records where **col_name** contains **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $contains : value
   } 
-}
+}]
 ```
 
 #### operator $gt
 Select records where **col_name** is greater than **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $gt : value
   }
-}
+}]
 ```
 
 #### operator $gte
 Select records where **col_name** is greater than or equal to **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $gte : value
   }
-}
+}]
 ```
 
 #### operator $lt
 Select records where **col_name** is lesser than **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $lt : value
   }
-}
+}]
 ```
 
 #### operator $lte
 Select records where **col_name** is lesser than or equal to **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $lte : value
   }
-}
+}]
 ```
 
 #### operator $ne
 Select records where **col_name** is not equal to **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $ne : value
   }
-}
-```
-
-#### operator between
-Select records where **col_name** is between greater than **value1** and lesser than **value2** 
-```json
-{ col_name : { 
-    $gt : value1,
-    $lt : value2
-  }
-}
+}]
 ```
 
 #### operator $or
 Select records where either of the expressions are true
 ```json
-{ $or : [ { <expression1> }, { <expression2> }, ... , { <expressionN> } ] }
+$where : [{ 
+  $or : [ 
+    { <expression1> }, 
+    { <expression2> }, ... , 
+    { <expressionN> } 
+  ] 
+}]
 ```
 
 #### operator $and
 Select records where all of the expressions are true
 ```json
-{ $and: [ { col_name: { $ne: 1.99 } }, { col_name: { $exists: true } } ] }
-{ col_name: { $ne: 1.99, $exists: true } }
+$where : [{ 
+  $and: [ 
+    { col_name: { $ne: 1.99 } }, 
+    { col_name: { $exists: true } } 
+  ] 
+}]
+
 ```
 
 #### operator $exist
 Ensures records returned do not have col_name value that is NULL
 ```json
-{ col_name: { $exist: true } }
+$where : [{ 
+  col_name: { $exist: true } 
+}]
 ```
