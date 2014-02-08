@@ -54,19 +54,9 @@ A JSON object that contains the following clauses
 
 ```json
 http://krake-data-server/:table_name/search/:format?q={ 
-    $select : [{ 
-        $int: col_name1 
-      },{ 
-        $string: col_name2
-      },{ 
-        $float: col_name3 
-    }],
-    $where : { 
-      col_name1 : value 
-    },
-    $order : [{
-      $asc : col_name1
-    }],
+    $select : [...],
+    $where : [...],
+    $order : [...],
     $limit : 10,
     $skip : 20
   }
