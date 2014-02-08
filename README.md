@@ -184,12 +184,12 @@ $where : [{
 ```
 
 #### operator $and
-Select records where all of the expressions are true
+Select records where col1 != 1.99 and col2 not Null
 ```json
 $where : [{ 
   $and: [ 
-    { col_name: { $ne: 1.99 } }, 
-    { col_name: { $exists: true } } 
+    { col1: { $ne: 1.99 } }, 
+    { col2: { $exists: true } } 
   ] 
 }]
 
