@@ -56,7 +56,12 @@ describe "KrakeModel", ->
       expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'
       done()
 
-    it "should return the properly formatted custom columns", (done)->
+    it "should not return duplicated common columns ", (done)->
+      select_clause = @km.selectClause { $select : ["createdAt"] }
+      expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'
+      done()
+
+    it "should return the properly formatted repository columns", (done)->
       select_clause = @km.selectClause { $select : ["col1", "col2"] }
 
       expected_query =  "properties::hstore->'col1' as \"col1\"" +
@@ -65,7 +70,7 @@ describe "KrakeModel", ->
       expect(select_clause).toEqual expected_query
       done()
 
-    it "should return the properly formatted definition columns", (done)->
+    it "should return the properly formatted repository columns", (done)->
       select_clause = @km.selectClause {}
 
       expected_query =  'properties::hstore->\'drug bank\' as "drug bank",' +
@@ -78,13 +83,45 @@ describe "KrakeModel", ->
       expect(select_clause).toEqual expected_query
       done()
 
-    it "should return $count"
+    it "should return properly formatted common columns for $count", (done)->
+      select_clause = @km.selectClause { $select : [{ $count : "pingedAt" }] }
+      expect(select_clause).toEqual 'count("pingedAt" as text) as "pingedAt","createdAt","updatedAt"'
+      done()
 
-    it "should return $distinct"
+    it "should return properly formatted repository columns for $count", (done)->
+      select_clause = @km.selectClause { $select : [{ $count : "col1" }] }
+      expect(select_clause).toEqual 'count(properties::hstore->\'col1\' as text) as "col1","createdAt","updatedAt","pingedAt"'
+      done()
 
-    it "should return $max"
+    it "should return properly formatted common columns for $distinct", (done)->
+      select_clause = @km.selectClause { $select : [{ $distinct : "pingedAt" }] }
+      expect(select_clause).toEqual 'distinct cast("pingedAt" as text) as "pingedAt","createdAt","updatedAt"'
+      done()
 
-    it "should return $min"
+    it "should return properly formatted repository columns for $distinct", (done)->
+      select_clause = @km.selectClause { $select : [{ $distinct : "col1" }] }
+      expect(select_clause).toEqual 'distinct cast(properties::hstore->\'col1\' as text) as "col1","createdAt","updatedAt","pingedAt"'
+      done()
+
+    it "should return properly formatted common columns for $max", (done)->
+      select_clause = @km.selectClause { $select : [{ $max : "pingedAt" }] }
+      expect(select_clause).toEqual 'max(cast("pingedAt" as integer)) as "pingedAt","createdAt","updatedAt"'
+      done()
+
+    it "should return properly formatted repository columns for $max", (done)->
+      select_clause = @km.selectClause { $select : [{ $max : "col1" }] }
+      expect(select_clause).toEqual 'max(cast(properties::hstore->\'col1\' as integer)) as "col1","createdAt","updatedAt","pingedAt"'
+      done()
+
+    it "should return properly formatted common columns for $min", (done)->
+      select_clause = @km.selectClause { $select : [{ $min : "pingedAt" }] }
+      expect(select_clause).toEqual 'min(cast("pingedAt" as integer)) as "pingedAt","createdAt","updatedAt"'
+      done()
+
+    it "should return properly formatted repository columns for $min", (done)->
+      select_clause = @km.selectClause { $select : [{ $min : "col1" }] }
+      expect(select_clause).toEqual 'min(cast(properties::hstore->\'col1\' as integer)) as "col1","createdAt","updatedAt","pingedAt"'
+      done()
 
   describe "whereClause", ->
     beforeEach (done)-> 

@@ -17,8 +17,8 @@ class KrakeModel
           @columns = curr_qh.getFilteredColumns()
         else if curr_qh.getColumns() && curr_qh.getColumns().length > 0
           @columns = curr_qh.getColumns()
-        else
-          @columns = []
+
+        @columns = @columns || []
 
         @url_columns = curr_qh.getUrlColumns()
         callback && callback curr_qh.is_valid
@@ -39,20 +39,57 @@ class KrakeModel
                     ' WHERE ' + (@whereClause(query_obj) || 'true')
 
   selectClause : (query_obj)->
-    query = ""
+
     sel_cols = query_obj.$select || @columns
     
+    query = sel_cols.map((column)=>
+      switch typeof(column) 
+        when "string" # Operator : simple column select
+          if column in @common_cols
+            "\"" + column.replace(/'/, '\\\'') + "\""        
+          else
+            "properties::hstore->'" + column.replace(/'/, '\\\'') + "' as \"" + column.replace(/""/, '\\\""') + "\""
 
-    if sel_cols.length > 0
-      query = sel_cols.map((column)->
-        "properties::hstore->'" + column.replace(/'/, '\\\'') + "' as \"" + column.replace(/""/, '\\\""') + "\""
-      ).join(",") 
-      query += ","
-    
-    query += @common_cols.map((col)->
-      JSON.stringify(col)
+        when "object" # Operator : $count, $distinct, $max, $min
+          operator = Object.keys(column)[0]
+          switch operator
+            when "$count"
+              if column[operator] in @common_cols
+                'count("' + column[operator].replace(/'/, '\\\'') + '" as text) as "' + column[operator].replace(/'/, '\\\'') + '"'
+              else
+                "count(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as text) as \"" + column[operator].replace(/""/, '\\\""') + "\""             
+
+            when "$distinct"
+              if column[operator] in @common_cols
+                'distinct cast("' + column[operator].replace(/'/, '\\\'') + '" as text) as "' + column[operator].replace(/'/, '\\\'') + '"'
+              else
+                "distinct cast(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as text) as \"" + column[operator].replace(/""/, '\\\""') + "\"" 
+                
+            when "$max"
+              if column[operator] in @common_cols
+                'max(cast("' + column[operator].replace(/'/, '\\\'') + '" as integer)) as "' + column[operator].replace(/'/, '\\\'') + '"'
+              else
+                "max(cast(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as integer)) as \"" + column[operator].replace(/""/, '\\\""') + "\""
+
+            when "$min"
+              if column[operator] in @common_cols
+                'min(cast("' + column[operator].replace(/'/, '\\\'') + '" as integer)) as "' + column[operator].replace(/'/, '\\\'') + '"'
+              else
+                "min(cast(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as integer)) as \"" + column[operator].replace(/""/, '\\\""') + "\""
+
+
     ).join(",")
 
+    query += "," unless !sel_cols || sel_cols.length == 0
+    query += @common_cols.filter((col)=>
+        col not in sel_cols.map ((sel_col)=>
+          switch typeof(sel_col)
+            when "string" then sel_col
+            when "object" then sel_col[Object.keys(sel_col)[0]]
+        )
+      ).map((col)->
+        JSON.stringify(col)
+      ).join(",")
     query
 
   whereClause : (query_obj)->
