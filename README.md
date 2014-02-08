@@ -55,11 +55,11 @@ A JSON object that contains the following clauses
 ```json
 http://krake-data-server/:table_name/search/:format?q={ 
     $select : [{ 
-      $int: col_name1 
-    },{ 
-      $string: col_name2
-    },{ 
-      $float: col_name3 
+        $int: col_name1 
+      },{ 
+        $string: col_name2
+      },{ 
+        $float: col_name3 
     }],
     $where : { 
       col_name1 : value 
@@ -75,40 +75,22 @@ http://krake-data-server/:table_name/search/:format?q={
 
 ### $select clause
 
-#### operator $int
-Returns values corresponding to col_name casted as integer
+#### operator simple
+Returns distinct values in col_name
 ```json
-{ $int: col_name }
+$select : [col_name]
 ```
 
-#### operator $float
-Returns values corresponding to col_name casted as float
+#### operator $count
+Returns distinct values in col_name
 ```json
-{ $float: col_name }
-```
-
-#### operator $string
-Returns values corresponding to col_name casted as string
-```json
-{ $string: col_name }
-```
-
-#### operator $max
-Returns the max value corresponding to col_name
-```json
-{ $max: col_name }
-```
-
-#### operator $min
-Returns the max value corresponding to col_name
-```json
-{ $max: col_name }
+$select : [{ $count: col_name }]
 ```
 
 #### operator $distinct
 Returns distinct values in col_name
 ```json
-{ $distinct: col_name }
+$select : [{ $distinct: col_name }]
 ```
 
 ### $where clause
