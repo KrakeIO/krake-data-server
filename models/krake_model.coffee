@@ -140,8 +140,6 @@ class KrakeModel
       
     query.join(" and ")
 
-  groupClause : (query_obj)->
-
   limitClause : (query_obj)->
 
   skipClause : (query_obj)->
