@@ -1,13 +1,14 @@
 # Krake's Data Export API 
 
+## Overview
 Provides RESTFUL API for Postgresql HSTORE database used in [Krake's Data Harvesting Engine] (https://krake.io)
 
-## Goals
+### Goals
 - This API is not an attempting at describing fully the entire SQL grammar
 - This API should support only subsets of the SQL grammar that could be utilized without much impact of database performance in a fully sharded environment 
 - OPERATORS like GROUP BY and ORDER BY has thus been deliberately left out of this API's grammar
 
-## Thoughts and guiding principals
+### Thoughts and guiding principals
 - <code>JOINS</code> across tables are evil
 - Databases slow down drastically when computing JOIN operations 
 - SORTING and JOINING to be done at the application layer
