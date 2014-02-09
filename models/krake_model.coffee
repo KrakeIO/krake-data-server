@@ -45,37 +45,24 @@ class KrakeModel
     query = sel_cols.map((column)=>
       switch typeof(column) 
         when "string" # Operator : simple column select
-          if column in @common_cols
-            "\"" + column.replace(/'/, '\\\'') + "\""        
-          else
-            "properties::hstore->'" + column.replace(/'/, '\\\'') + "' as \"" + column.replace(/""/, '\\\""') + "\""
+          query_section = @colName(column)
+          query_section += " as " + @colLabel(column) unless column in @common_cols
+          query_section
 
         when "object" # Operator : $count, $distinct, $max, $min
           operator = Object.keys(column)[0]
           switch operator
             when "$count"
-              if column[operator] in @common_cols
-                'count("' + column[operator].replace(/'/, '\\\'') + '") as "' + column[operator].replace(/'/, '\\\'') + '"'
-              else
-                "count(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "') as \"" + column[operator].replace(/""/, '\\\""') + "\""             
+              "count(" + @colName(column[operator]) + ") as " + @colLabel(column[operator]) 
 
             when "$distinct"
-              if column[operator] in @common_cols
-                'distinct cast("' + column[operator].replace(/'/, '\\\'') + '" as text) as "' + column[operator].replace(/'/, '\\\'') + '"'
-              else
-                "distinct cast(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "' as text) as \"" + column[operator].replace(/""/, '\\\""') + "\"" 
-                
+              'distinct cast(' + @colName(column[operator]) + ' as text) as "' + column[operator].replace(/'/, '\\\'') + '"'
+
             when "$max"
-              if column[operator] in @common_cols
-                'max("' + column[operator].replace(/'/, '\\\'') + '") as "' + column[operator].replace(/'/, '\\\'') + '"'
-              else
-                "max(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "') as \"" + column[operator].replace(/""/, '\\\""') + "\""
+              "max(" + @colName(column[operator]) + ") as " + @colLabel(column[operator]) 
 
             when "$min"
-              if column[operator] in @common_cols
-                'min("' + column[operator].replace(/'/, '\\\'') + '") as "' + column[operator].replace(/'/, '\\\'') + '"'
-              else
-                "min(properties::hstore->'" + column[operator].replace(/'/, '\\\'') + "') as \"" + column[operator].replace(/""/, '\\\""') + "\""
+              "min(" + @colName(column[operator]) + ") as " + @colLabel(column[operator]) 
 
 
     ).join(",")
@@ -92,6 +79,15 @@ class KrakeModel
     #   ).join(",")
     query = "1" if sel_cols.length == 0
     query
+
+  colName : (column)->
+    if column in @common_cols 
+      '"' + column.replace(/'/, '\\\'') + '"'
+    else 
+      "properties::hstore->'" + column.replace(/'/, '\\\'') + "'"
+
+  colLabel : (column)->
+    '"' + column.replace(/'/, '\\\'') + '"'
 
   whereClause : (query_obj)->
     return "" unless query_obj.$where 
@@ -143,6 +139,8 @@ class KrakeModel
       query.push sub_query
       
     query.join(" and ")
+
+  groupClause : (query_obj)->
 
   limitClause : (query_obj)->
 

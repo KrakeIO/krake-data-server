@@ -38,11 +38,11 @@ describe "KrakeModel", ->
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
     @Krake = dbSystem.define 'krakes', krakeSchema 
 
-    # Force create dataSchema table in test database
+    # Force reset dataSchema table in test database
     @Krake.sync({force: true}).success ()=>
       @Krake.create({ content: krake_definition, handle: @repo_name}).success ()=>
 
-        # Force create dataRepository table in test database
+        # Force reset dataRepository table in test database
         @Records = dbRepo.define @repo_name, recordBody  
         @Records.sync({force: true}).success ()=>
 
@@ -75,6 +75,50 @@ describe "KrakeModel", ->
         @dbRepo.query query_string
       ).not.toThrow()
       done()
+
+    it "should return the latest batch", (done)->
+      d1 = new Date()
+      d1.setDate(10)
+      d2 = new Date()
+      d2.setDate(20)
+
+      promise1 = @Records.create({ properties: "", pingedAt: d1 })
+      promise2 = promise1.then @Records.create({ properties: "", pingedAt: d2 })
+      promise2.then ()=>
+        query_string = @km.getQuery { $select : [{ $max : "pingedAt" }] }
+        @dbRepo.query(query_string).success (records)->
+          expect(records[0].pingedAt).toEqual d2
+          done()
+
+    it "should return the earliest batch", (done)->
+      d1 = new Date()
+      d1.setDate(10)
+      d2 = new Date()
+      d2.setDate(20)
+
+      promise1 = @Records.create({ properties: "", pingedAt: d1 })
+      promise2 = promise1.then @Records.create({ properties: "", pingedAt: d2 })
+      promise2.then ()=>
+        query_string = @km.getQuery { $select : [{ $min : "pingedAt" }] }
+        @dbRepo.query(query_string).success (records)->
+          expect(records[0].pingedAt).toEqual d1
+          done()
+
+    it "should get the all the batches", (done)->
+      d1 = new Date()
+      d1.setDate(10)
+      d2 = new Date()
+      d2.setDate(20)
+
+      promise1 = @Records.create({ properties: "", pingedAt: d1 })
+      promise2 = promise1.then @Records.create({ properties: "", pingedAt: d1 })
+      promise3 = promise2.then @Records.create({ properties: "", pingedAt: d2 })
+      promise4 = promise3.then @Records.create({ properties: "", pingedAt: d2 })
+      promise4.then ()=>
+        query_string = @km.getQuery { $select : [{ $distinct : "pingedAt" }] }
+        @dbRepo.query(query_string).success (records)->
+          expect(records.length).toEqual 2
+          done()
 
   describe "selectClause", ->
     it "should return the properly formatted common columns ", (done)->
@@ -185,7 +229,6 @@ describe "KrakeModel", ->
 
       it "should not create an invalid $distinct select statement for repository columns", (done)->
         query_string = @km.getQuery({ $select : [{ $max : @km.columns[0] }] })
-        console.log query_string
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
@@ -215,6 +258,15 @@ describe "KrakeModel", ->
           @dbRepo.query query_string
         ).not.toThrow()
         done()
+
+  describe "colName", ->
+    it "should return correct common column name", (done)->
+      expect(@km.colName "pingedAt").toBe '"pingedAt"'
+      done()
+
+    it "should return correct repository column name", (done)->
+      expect(@km.colName "col1").toBe "properties::hstore->'col1'"
+      done()
 
   describe "whereClause", ->
     it "should not return any where condition if there are not where conditions in query_obj", (done)->
@@ -478,4 +530,4 @@ describe "KrakeModel", ->
         }]
       where_clause = @km.whereClause query_obj
       expect(where_clause).toEqual "('pingedAt' = '2013-07-06 02:57:09' or ('updatedAt' = '2013-07-06 02:57:09' and 'createdAt' = '2013-07-06 02:57:09'))"
-      done()    
+      done()
