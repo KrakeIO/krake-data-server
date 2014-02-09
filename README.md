@@ -219,3 +219,9 @@ $where : [{
 }]
 
 ```
+
+## Principals in the designing of this Data Export API
+- <code>JOINS</code> across tables are evil
+- Databases slow down drastically when computing JOIN operations 
+- SORTING and JOINING to be done at the application layer
+- This approach allows for easy Database replication and sharding moving forward
