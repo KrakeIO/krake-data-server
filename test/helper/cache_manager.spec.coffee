@@ -70,6 +70,16 @@ describe "CacheManager", ->
       done()
 
   describe "getCache", ->
+    it "should return path to cache", (done)->
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+      @cm.getCache @repo_name, [], [], query_string, format, (error, generate_path_to_cache)=>
+        expect(error).toEqual null
+        expect(generate_path_to_cache).toEqual path_to_file
+        done()
+
     it "should call generateCache if cache does not already exist", (done)->
       spyOn(@cm, 'generateCache').andCallThrough()      
       query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
@@ -128,6 +138,31 @@ describe "CacheManager", ->
 
           data_obj = JSON.parse fs.readFileSync(path_to_file)
           expect(data_obj[0]['drug bank']).toEqual "cache that stuff"
+          done()
+
+
+    it "should generate cache that is valid JSON format", (done)->
+      format = 'json'      
+      data_obj1 = 
+        "drug \"bank" : "cache \"that double quote"
+        "drug \'name" : "cache \'that single quote"
+      query_string = @km.getSelectStatement { $select : ["drug \"bank", "drug \'name", "pingedAt"] }
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+
+      insert_query1 = @km.getInsertStatement(data_obj1)
+      promise1 = @dbRepo.query(insert_query1)
+      promise1.then ()=>
+
+        @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+          expect(fs.existsSync path_to_file).toBe true
+          expect(()=>
+            JSON.parse fs.readFileSync(path_to_file)
+          ).not.toThrow()
+
+          data_obj = JSON.parse fs.readFileSync(path_to_file)
+          expect(data_obj[0]['drug &#34;bank']).toEqual "cache &#34;that double quote"
+          expect(data_obj[0]['drug &#39;name']).toEqual "cache &#39;that single quote"
           done()
 
   describe "clearCache", ->

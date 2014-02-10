@@ -34,7 +34,7 @@ krake_definition = fs.readFileSync(__dirname + '/../fixtures/krake_definition.js
 describe "KrakeModel", ->
 
   beforeEach (done)->
-    @dbRepo = dbRepo    
+    @dbRepo = dbRepo
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
     @Krake = dbSystem.define 'krakes', krakeSchema
 
@@ -52,6 +52,17 @@ describe "KrakeModel", ->
         @km = new KrakeModel dbSystem, @repo_name, ()->
           done()
 
+  it "should return status as true when repository is valid", (done)->
+    km = new KrakeModel dbSystem, @repo_name, (status, error_msg)->
+      expect(status).toEqual true
+      expect(error_msg).toEqual null
+      done()
+
+  it "should return status as false when repository is invalid", (done)->
+    km = new KrakeModel dbSystem, "invalid table name", (status, error_msg)->
+      expect(status).toEqual false
+      expect(error_msg).toEqual 'Sorry. The data repository you were looking for does not exist'
+      done()
 
   it "should have columns", (done)->
     km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
@@ -63,8 +74,24 @@ describe "KrakeModel", ->
       expect(@km.colName "pingedAt").toBe '"pingedAt"'
       done()
 
+    it "should return correct common column name with auto replacement for double quote", (done)->
+      expect(@km.colName "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
+      done()
+
+    it "should return correct common column name with auto replacement for single quote", (done)->
+      expect(@km.colName "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
+      done()
+
     it "should return correct repository column name", (done)->
       expect(@km.colName "col1").toBe "properties::hstore->'col1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for double quote", (done)->
+      expect(@km.colName "col\"1").toBe "properties::hstore->'col&#34;1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for single quote", (done)->
+      expect(@km.colName "col'1").toBe "properties::hstore->'col&#39;1'"
       done()
 
   describe "getInsertStatement", ->
@@ -87,6 +114,32 @@ describe "KrakeModel", ->
       d1.setDate(10)
       data_obj = 
         "drug bank" : "what to do"
+        "pingedAt" : new Date()
+        "pingedAt" : new Date()
+      insert_query = @km.getInsertStatement(data_obj)
+      expect(()=>
+        @dbRepo.query(insert_query)
+      ).not.toThrow()
+      done()
+
+    it "should insert a record without error when value has single quote by replacing it with &#39;", (done)->
+      d1 = new Date()
+      d1.setDate(10)
+      data_obj = 
+        "drug \'bank" : "what 'to do"
+        "pingedAt" : new Date()
+        "pingedAt" : new Date()
+      insert_query = @km.getInsertStatement(data_obj)
+      expect(()=>
+        @dbRepo.query(insert_query)
+      ).not.toThrow()
+      done()
+
+    it "should insert a record without error when value has double quote", (done)->
+      d1 = new Date()
+      d1.setDate(10)
+      data_obj = 
+        "drug \"bank" : "what \"to do"
         "pingedAt" : new Date()
         "pingedAt" : new Date()
       insert_query = @km.getInsertStatement(data_obj)

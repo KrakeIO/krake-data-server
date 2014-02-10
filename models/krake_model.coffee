@@ -25,7 +25,7 @@ class KrakeModel
 
       if krakes.length == 0
         @columns = []
-        callback && callback(false, "No records were found")
+        callback && callback(false, "Sorry. The data repository you were looking for does not exist")
   
     couldNotGetKrakes = (error_msg)->
       callback && callback false, error_msg
@@ -67,9 +67,10 @@ class KrakeModel
   getHstoreValues : (data_obj)->
     return false if Object.keys(data_obj).length == 0
     Object.keys(data_obj).filter((column)=>
+        column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
         column not in @common_cols
       ).map((column)=>
-        '"' + column.replace(/"/, '\\\"') + '" => "' + data_obj[column].replace(/"/, '\\\"') + '"'
+        '"' + column.replace(/"/, '&#34;').replace(/'/, '&#39;') + '" => "' + data_obj[column].replace(/"/, '&#34;').replace(/'/, '&#39;') + '"'
       ).join(",")
 
 
@@ -85,13 +86,15 @@ class KrakeModel
     query_string
 
   colName : (column)->
+    column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
     if column in @common_cols 
-      '"' + column.replace(/"/, '\\\"') + '"'
+      '"' + column + '"'
     else 
-      @hstore_col + "::hstore->'" + column.replace(/'/, '\\\'') + "'"
+      @hstore_col + "::hstore->'" + column + "'"
 
   colLabel : (column)->
-    '"' + column.replace(/'/, '\\\'') + '"'
+    column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')    
+    '"' + column + '"'
 
   selectClause : (query_obj)->
 
