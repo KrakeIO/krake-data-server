@@ -95,9 +95,7 @@ describe "KrakeModel", ->
       ).not.toThrow()
       done()
       
-    it "should insert a record without error", (done)->
-      d1 = new Date()
-      d1.setDate(10)
+    it "should insert a record that is retrievable", (done)->
       data_obj = 
         "drug bank" : "what to do"
         "pingedAt" : new Date()
@@ -690,6 +688,22 @@ describe "KrakeModel", ->
       ).not.toThrow()
       done()
 
+      
+    it "should insert a record that is retrievable", (done)->
+      data_obj = 
+        "drug bank" : "what to do"
+        "pingedAt" : new Date()
+        "pingedAt" : new Date()
+      insert_query = @km.getInsertStatement(data_obj)
+      promise1 = @dbRepo.query(insert_query)
+      promise2 = promise1.then @dbRepo.query(insert_query)
+      promise3 = promise2.then @dbRepo.query(insert_query)
+      promise3.then ()=>
+        query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1 }
+        @dbRepo.query(query_string).success (records)->
+          expect(records.length).toEqual 1
+          done()
+
   describe "offsetClause", ->
     it "should return an offset of 10 and not cause an error", (done)->
       query_obj = 
@@ -701,3 +715,52 @@ describe "KrakeModel", ->
         @dbRepo.query query_string
       ).not.toThrow()
       done()
+
+
+    it "should insert a record that is retrievable", (done)->
+      data_obj1 = 
+        "drug bank" : "what to do"
+
+      data_obj2 = 
+        "drug bank" : "what to do again"
+
+      data_obj3 = 
+        "drug bank" : "what to do again and again"
+
+      insert_query1 = @km.getInsertStatement(data_obj1)
+      insert_query2 = @km.getInsertStatement(data_obj2)
+      insert_query3 = @km.getInsertStatement(data_obj3)
+
+      promise1 = @dbRepo.query(insert_query1)
+      promise2 = promise1.then @dbRepo.query(insert_query2)
+      promise3 = promise2.then @dbRepo.query(insert_query3)
+      promise4 = promise3.then @dbRepo.query(insert_query1)
+      promise4.then ()=>
+        query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 0 }
+        @dbRepo.query(query_string).success (records)->
+          expect(records.length).toEqual 1
+          done()
+
+    it "should insert a record that is retrievable", (done)->
+      data_obj1 = 
+        "drug bank" : "what to do"
+
+      data_obj2 = 
+        "drug bank" : "what to do again"
+
+      data_obj3 = 
+        "drug bank" : "what to do again and again"
+
+      insert_query1 = @km.getInsertStatement(data_obj1)
+      insert_query2 = @km.getInsertStatement(data_obj2)
+      insert_query3 = @km.getInsertStatement(data_obj3)
+
+      promise1 = @dbRepo.query(insert_query1)
+      promise2 = promise1.then @dbRepo.query(insert_query2)
+      promise3 = promise2.then @dbRepo.query(insert_query3)
+      promise4 = promise3.then @dbRepo.query(insert_query1)
+      promise4.then ()=>
+        query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 4 }
+        @dbRepo.query(query_string).success (records)->
+          expect(records.length).toBe 0
+          done()
