@@ -28,11 +28,11 @@ class CacheManager
     
     fs.exists pathToFile, ( exists )=>
       if !exists then @generateCache repo_name, columns, urlColumns, query, format, (err)->
-        console.log '%s : Created new cache : %s', repo_name, format
+        # console.log '%s : Created new cache : %s', repo_name, format
         callback && callback err, pathToFile
         
       else 
-        console.log '%s : Cache exist : %s', repo_name, format
+        # console.log '%s : Cache exist : %s', repo_name, format
         callback && callback null, pathToFile
 
 

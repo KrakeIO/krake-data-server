@@ -56,18 +56,40 @@ describe "CacheManager", ->
     rimraf.sync @test_folder
     done()
 
-  it "should return valid cacheKey", (done)->
-    query_string = ""
-    expect(@cm.getCacheKey @repo_name, query_string).toEqual(@repo_name + "_" + crypto.createHash('md5').update(query_string).digest("hex"))
-    done()
-
-
   it "should create a cache folder if it does not exist", (done)->
     fs.rmdirSync(@test_folder) if fs.existsSync(@test_folder)
     expect(fs.existsSync @test_folder).toBe false
     cm = new CacheController @test_folder, dbRepo, recordBody
     expect(fs.existsSync @test_folder).toBe true
     done()
+
+  describe "getCacheKey", ->
+    it "should return valid cacheKey", (done)->
+      query_string = ""
+      expect(@cm.getCacheKey @repo_name, query_string).toEqual(@repo_name + "_" + crypto.createHash('md5').update(query_string).digest("hex"))
+      done()
+
+  describe "getCache", ->
+    it "should call generateCache if cache does not already exist", (done)->
+      spyOn(@cm, 'generateCache').andCallThrough()      
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+      @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+        expect(@cm.generateCache).toHaveBeenCalled()
+        done()
+
+    it "should not call generateCache if cache already exist", (done)->
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+      @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+        spyOn(@cm, 'generateCache').andCallThrough()
+        @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+          expect(@cm.generateCache).not.toHaveBeenCalled()
+          done()
 
   describe "generateCache", ->
     it "should generate cache without error", (done)->
@@ -80,9 +102,10 @@ describe "CacheManager", ->
     it "should generate cache in folder location", (done)->
       query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
       format = 'json'
-      cache_name = @cm.getCacheKey @repo_name, query_string
+      cache_name = @cm.getCacheKey @repo_name, query_string        
+      path_to_file = @test_folder + cache_name + '.' + format
       @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
-        expect(fs.existsSync(@test_folder + cache_name + '.' + format)).toBe true
+        expect(fs.existsSync(path_to_file)).toBe true
         done()
 
     it "should generate cache that is valid JSON format", (done)->
