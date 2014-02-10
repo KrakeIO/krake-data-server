@@ -41,7 +41,6 @@ describe "CacheManager", ->
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
     @test_folder = "/tmp/test_folder/"
     rimraf.sync @test_folder
-    fs.rmdirSync(@test_folder) if fs.existsSync(@test_folder)
     @repo_name = "test_tables"
     
     @Krake = dbSystem.define 'krakes', krakeSchema 
@@ -52,6 +51,10 @@ describe "CacheManager", ->
       @Records.sync({force: true}).success ()=>
         @km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
           done()
+
+  afterEach (done)->
+    rimraf.sync @test_folder
+    done()
 
   it "should return valid cacheKey", (done)->
     query_string = ""
