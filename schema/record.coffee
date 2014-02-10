@@ -1,7 +1,7 @@
 Sequelize = require 'sequelize'
 
 recordBody = 
-  properties: Sequelize.TEXT,
+  properties: 'hstore',
   pingedAt: Sequelize.DATE
 
 

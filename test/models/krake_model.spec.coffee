@@ -36,19 +36,22 @@ describe "KrakeModel", ->
   beforeEach (done)->
     @dbRepo = dbRepo    
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
-    @Krake = dbSystem.define 'krakes', krakeSchema 
+    @Krake = dbSystem.define 'krakes', krakeSchema
 
     # Force reset dataSchema table in test database
-    @Krake.sync({force: true}).success ()=>
-      @Krake.create({ content: krake_definition, handle: @repo_name}).success ()=>
+    promise1 = @Krake.sync({force: true})
+    promise2 = promise1.then ()=>
+      @Krake.create({ content: krake_definition, handle: @repo_name})
 
-        # Force reset dataRepository table in test database
-        @Records = dbRepo.define @repo_name, recordBody  
-        @Records.sync({force: true}).success ()=>
+    promise3 = promise2.then ()=>
+      # Force reset dataRepository table in test database
+      @Records = dbRepo.define @repo_name, recordBody  
+      @Records.sync({force: true}).success ()=>
 
-          # instantiates a krake model
-          @km = new KrakeModel dbSystem, @repo_name, ()->
-            done()
+        # instantiates a krake model
+        @km = new KrakeModel dbSystem, @repo_name, ()->
+          done()
+
 
   it "should have columns", (done)->
     km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
@@ -64,12 +67,91 @@ describe "KrakeModel", ->
       expect(@km.colName "col1").toBe "properties::hstore->'col1'"
       done()
 
-  describe "getQuery", =>
+  describe "getInsertStatement", ->
+    it "should call its sub functions", (done)->
+      spyOn(@km, 'getHstoreValues').andCallThrough()
+      query_string = @km.getInsertStatement({})
+      expect(@km.getHstoreValues).toHaveBeenCalled()
+      done()
+
+    it "should insert current date for common columns that do not have date indicated", (done)->
+      data_obj = 
+        "drug bank" : "what to do"
+      expect(@km.getInsertStatement(data_obj).match("pingedAt").length).toEqual 1
+      expect(@km.getInsertStatement(data_obj).match("updatedAt").length).toEqual 1
+      expect(@km.getInsertStatement(data_obj).match("createdAt").length).toEqual 1
+      done()      
+
+    it "should insert a record without error", (done)->
+      d1 = new Date()
+      d1.setDate(10)
+      data_obj = 
+        "drug bank" : "what to do"
+        "pingedAt" : new Date()
+        "pingedAt" : new Date()
+      insert_query = @km.getInsertStatement(data_obj)
+      expect(()=>
+        @dbRepo.query(insert_query)
+      ).not.toThrow()
+      done()
+      
+    it "should insert a record without error", (done)->
+      d1 = new Date()
+      d1.setDate(10)
+      data_obj = 
+        "drug bank" : "what to do"
+        "pingedAt" : new Date()
+        "pingedAt" : new Date()
+      insert_query = @km.getInsertStatement(data_obj)
+      @dbRepo.query(insert_query).success ()=>
+        query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"] }
+        @dbRepo.query(query_string).success (records)->
+          expect(records.length).toEqual 1
+          expect(records[0]["drug bank"]).toEqual "what to do"
+          done()
+
+  describe "getFormattedDate", ->
+    it "should ensure formatted date returns date of good and proper format", (done)->
+      d = new Date
+      control = d.getFullYear() + "-"  +  (d.getMonth() + 1)  + "-" + d.getDate()  + " " + d.getHours() + ":"  +  d.getMinutes()  + ":" + d.getSeconds()
+      expect(@km.getFormattedDate d).toEqual control
+      done()
+
+  describe "getHstoreValues", ->
+
+    it "should ignore values from the common columns", (done)->
+      data_obj = 
+        "drug bank" : "what to do"
+        "pingedAt" : new Date()
+        "createdAt" : new Date()
+        "updatedAt" : new Date()
+      expect(@km.getHstoreValues(data_obj)).toEqual '"drug bank" => "what to do"'
+      done()
+
+    it "should return a valid insert statement for a single repository column", (done)->
+      data_obj = 
+        "drug bank" : "what to do"
+      expect(@km.getHstoreValues(data_obj)).toEqual '"drug bank" => "what to do"'
+      done()
+
+    it "should return a valid insert statement for two repository columns", (done)->
+      data_obj = 
+        "drug bank" : "This is the bank"
+        "drug name" : "This is my name"
+      expect(@km.getHstoreValues(data_obj)).toEqual '"drug bank" => "This is the bank","drug name" => "This is my name"'
+      done()
+
+    it "should return false if not values are declared", (done)->
+      expect(@km.getHstoreValues({})).toEqual false
+      done()
+
+
+  describe "getSelectStatement", =>
     it "should call all the sub clauses", (done)->
       spyOn(@km, 'selectClause').andCallThrough()
       spyOn(@km, 'whereClause').andCallThrough()
       spyOn(@km, 'orderClause').andCallThrough()
-      query_string = @km.getQuery({})
+      query_string = @km.getSelectStatement({})
       expect(()=>  
         @dbRepo.query query_string
       ).not.toThrow()      
@@ -81,7 +163,7 @@ describe "KrakeModel", ->
     it "should call all the sub clauses", (done)->
       spyOn(@km, 'selectClause').andCallThrough()
       spyOn(@km, 'whereClause').andCallThrough()
-      query_string = @km.getQuery({})
+      query_string = @km.getSelectStatement({})
       expect(()=>
         @dbRepo.query query_string
       ).not.toThrow()
@@ -96,7 +178,7 @@ describe "KrakeModel", ->
       promise1 = @Records.create({ properties: "", pingedAt: d1 })
       promise2 = promise1.then @Records.create({ properties: "", pingedAt: d2 })
       promise2.then ()=>
-        query_string = @km.getQuery { $select : [{ $max : "pingedAt" }] }
+        query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
         @dbRepo.query(query_string).success (records)->
           expect(records[0].pingedAt).toEqual d2
           done()
@@ -110,7 +192,7 @@ describe "KrakeModel", ->
       promise1 = @Records.create({ properties: "", pingedAt: d1 })
       promise2 = promise1.then @Records.create({ properties: "", pingedAt: d2 })
       promise2.then ()=>
-        query_string = @km.getQuery { $select : [{ $min : "pingedAt" }] }
+        query_string = @km.getSelectStatement { $select : [{ $min : "pingedAt" }] }
         @dbRepo.query(query_string).success (records)->
           expect(records[0].pingedAt).toEqual d1
           done()
@@ -126,7 +208,7 @@ describe "KrakeModel", ->
       promise3 = promise2.then @Records.create({ properties: "", pingedAt: d2 })
       promise4 = promise3.then @Records.create({ properties: "", pingedAt: d2 })
       promise4.then ()=>
-        query_string = @km.getQuery { $select : [{ $distinct : "pingedAt" }] }
+        query_string = @km.getSelectStatement { $select : [{ $distinct : "pingedAt" }] }
         @dbRepo.query(query_string).success (records)->
           expect(records.length).toEqual 2
           done()
@@ -163,7 +245,7 @@ describe "KrakeModel", ->
       done()
 
     it "should not create an invalid normal select statement", (done)->
-      query_string = @km.getQuery({})
+      query_string = @km.getSelectStatement({})
       expect(()=>  
         @dbRepo.query query_string
       ).not.toThrow()
@@ -182,14 +264,14 @@ describe "KrakeModel", ->
         done()
 
       it "should not create an invalid $count select statement for common columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $count : "pingedAt" }] })
+        query_string = @km.getSelectStatement({ $select : [{ $count : "pingedAt" }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
         done()
 
       it "should not create an invalid $count select statement for repository columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $count : @km.columns[0] }] })
+        query_string = @km.getSelectStatement({ $select : [{ $count : @km.columns[0] }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
@@ -207,14 +289,14 @@ describe "KrakeModel", ->
         done()
 
       it "should not create an invalid $distinct select statement for common columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $distinct : "pingedAt" }] })
+        query_string = @km.getSelectStatement({ $select : [{ $distinct : "pingedAt" }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
         done()
 
       it "should not create an invalid $distinct select statement for repository columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $distinct : @km.columns[0] }] })
+        query_string = @km.getSelectStatement({ $select : [{ $distinct : @km.columns[0] }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
@@ -232,14 +314,14 @@ describe "KrakeModel", ->
         done()
 
       it "should not create an invalid $distinct select statement for common columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $max : "pingedAt" }] })
+        query_string = @km.getSelectStatement({ $select : [{ $max : "pingedAt" }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
         done()
 
       it "should not create an invalid $distinct select statement for repository columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $max : @km.columns[0] }] })
+        query_string = @km.getSelectStatement({ $select : [{ $max : @km.columns[0] }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
@@ -257,14 +339,14 @@ describe "KrakeModel", ->
         done()
 
       it "should not create an invalid $min select statement for common columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $min : "pingedAt" }] })
+        query_string = @km.getSelectStatement({ $select : [{ $min : "pingedAt" }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
         done()
 
       it "should not create an invalid $min select statement for repository columns", (done)->
-        query_string = @km.getQuery({ $select : [{ $min : @km.columns[0] }] })
+        query_string = @km.getSelectStatement({ $select : [{ $min : @km.columns[0] }] })
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
@@ -590,7 +672,7 @@ describe "KrakeModel", ->
           },{
             $desc : "drug bank"          
         }]
-      query_string = @km.getQuery query_obj
+      query_string = @km.getSelectStatement query_obj
       expect(()=>
         @dbRepo.query query_string
       ).not.toThrow()
@@ -601,7 +683,7 @@ describe "KrakeModel", ->
       query_obj = 
         $select : ["drug bank"]
         $limit : 10
-      query_string = @km.getQuery query_obj
+      query_string = @km.getSelectStatement query_obj
       expect(query_string.match("LIMIT 10").length).toEqual 1
       expect(()=>
         @dbRepo.query query_string
@@ -613,7 +695,7 @@ describe "KrakeModel", ->
       query_obj = 
         $select : ["drug bank"]
         $offset : 10
-      query_string = @km.getQuery query_obj
+      query_string = @km.getSelectStatement query_obj
       expect(query_string.match("OFFSET 10").length).toEqual 1
       expect(()=>
         @dbRepo.query query_string

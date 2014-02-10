@@ -5,8 +5,8 @@ QueryHelper = ktk.query.helper
 class KrakeModel
   
   constructor : (@dbRepo, @repo_name, callback)->
-
-    @common_cols = ["createdAt", "updatedAt", "pingedAt"]
+    @hstore_col = "properties"
+    @common_cols = ["createdAt", "updatedAt", "pingedAt", @hstore_col]
     @Krake = @dbRepo.define 'krakes', krakeSchema
 
     gotKrakes = (krakes)=>
@@ -23,7 +23,7 @@ class KrakeModel
         @url_columns = curr_qh.getUrlColumns()
         callback && callback curr_qh.is_valid
 
-      if krakes.length == 0 
+      if krakes.length == 0
         @columns = []
         callback && callback(false, "No records were found")
   
@@ -32,8 +32,48 @@ class KrakeModel
 
     # Ensures only 1 Krake definition is retrieved given a krake handle
     @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).success(gotKrakes).error(couldNotGetKrakes)
-    
-  getQuery : (query_obj)->
+  
+
+  getInsertStatement : (data_obj)->
+    insert_keys_string = @common_cols.map((column)=>
+      '"' + column + '"'
+    ).join(",")
+
+    insert_value_string = @common_cols.map((column)=>
+      switch column
+        when "createdAt", "updatedAt", "pingedAt"
+          if data_obj[column] && typeof(data_obj[column]) == 'string' then data_obj[column]
+          else if data_obj[column] && typeof(data_obj[column]) == 'object' && data_obj[column].getMonth()
+            @getFormattedDate data_obj[column]
+          else 
+            @getFormattedDate new Date()
+        when @hstore_col
+          @getHstoreValues data_obj
+
+    ).map((column)=>
+      "'" + column + "'"
+    ).join(",")
+
+    query_string =  'INSERT INTO "' + @repo_name + '"' +
+                    ' (' + insert_keys_string + ')' +
+                    ' VALUES ' +
+                    ' (' + insert_value_string + ')'
+
+
+  getFormattedDate : (date_obj)->
+    d = date_obj 
+    d.getFullYear() + "-"  +  (d.getMonth() + 1)  + "-" + d.getDate()  + " " + d.getHours() + ":"  +  d.getMinutes()  + ":" + d.getSeconds()
+
+  getHstoreValues : (data_obj)->
+    return false if Object.keys(data_obj).length == 0
+    Object.keys(data_obj).filter((column)=>
+        column not in @common_cols
+      ).map((column)=>
+        '"' + column.replace(/"/, '\\\"') + '" => "' + data_obj[column].replace(/"/, '\\\"') + '"'
+      ).join(",")
+
+
+  getSelectStatement : (query_obj)->
     query_string =  'SELECT ' + @selectClause(query_obj) + 
                     ' FROM "' + @repo_name + '" ' + 
                     ' WHERE ' + (@whereClause(query_obj) || 'true')
@@ -46,9 +86,9 @@ class KrakeModel
 
   colName : (column)->
     if column in @common_cols 
-      '"' + column.replace(/'/, '\\\'') + '"'
+      '"' + column.replace(/"/, '\\\"') + '"'
     else 
-      "properties::hstore->'" + column.replace(/'/, '\\\'') + "'"
+      @hstore_col + "::hstore->'" + column.replace(/'/, '\\\'') + "'"
 
   colLabel : (column)->
     '"' + column.replace(/'/, '\\\'') + '"'
@@ -141,7 +181,7 @@ class KrakeModel
               when "$exist"
                 sub_query = "'" + col_name + "'" + " not NULL"
 
-      if(col_name not in @common_cols) && (col_name not in ["$and", "$or"]) then sub_query = "properties->" + sub_query  
+      if(col_name not in @common_cols) && (col_name not in ["$and", "$or"]) then sub_query = @hstore_col + "->" + sub_query  
       query.push sub_query
       
     query.join(" and ")
