@@ -11,47 +11,51 @@ class CacheManager
 
   createCacheFolder: ()->
     fs.mkdirSync(@cachePath) unless fs.existsSync(@cachePath)
+
+  getCacheKey: (repo_name, query)->
+    repo_name + "_" + crypto.createHash('md5').update(kson.stringify(query)).digest("hex")
   
   # @Description : returns the path to the cached record 
-  # @param : tableName:String
+  # @param : repo_name:String
   # @param : columns:array
   # @param : urlColumns:array
   # @param : query:string
   # @param : format:string
   # @param : callback:function(error:string, pathToFile:string)
-  getCache: (tableName, columns, urlColumns, query, format, callback)->
-    cacheIdentifier = tableName + "_" + crypto.createHash('md5').update(kson.stringify(query)).digest("hex")
-    pathToFile = @cachePath + cacheIdentifier + "." + format
+  getCache: (repo_name, columns, urlColumns, query, format, callback)->
+    cacheKey = @getCacheKey repo_name, query
+    pathToFile = @cachePath + cacheKey + "." + format
     
     fs.exists pathToFile, ( exists )=>
-      if !exists then @generateCache tableName, columns, urlColumns, query, format, pathToFile, (err)->
-        console.log '%s : Created new cache : %s', tableName, format
+      if !exists then @generateCache repo_name, columns, urlColumns, query, format, (err)->
+        console.log '%s : Created new cache : %s', repo_name, format
         callback && callback err, pathToFile
         
       else 
-        console.log '%s : Cache exist : %s', tableName, format
+        console.log '%s : Cache exist : %s', repo_name, format
         callback && callback null, pathToFile
 
 
 
   # @Description : clears the cached records for a table
-  # @param : tableName:string
+  # @param : repo_name:string
   # @param : callback:function(error:String, status:Boolean)->
-  clearCache: (tableName, callback)->
+  clearCache: (repo_name, callback)->
     callback && callback null, true
 
 
 
   # @Description : generates a cached record
-  # @param : tableName:String
+  # @param : repo_name:String
   # @param : columns:array
   # @param : urlColumns:array
   # @param : query:string
   # @param : format:string
   # @param : pathToFile:string  
   # @param : callback:function(error:string)  
-  generateCache: (tableName, columns, urlColumns, query, format, pathToFile, callback)->
-    model = @dbRepo.define tableName, @modelBody
+  generateCache: (repo_name, columns, urlColumns, query, format callback)->
+    pathToFile = @getCacheKey repo_name, query
+    model = @dbRepo.define repo_name, @modelBody
     cbSuccess = ()=>
       switch format
         when 'json'
@@ -66,12 +70,12 @@ class CacheManager
         (rows)=>
           switch format
             when 'json', 'csv'
-              console.log '%s : cache successfully created : %s', tableName, format
+              console.log '%s : cache successfully created : %s', repo_name, format
               callback && callback null
                 
             when 'html'
               @writeHtmlToCache rows, columns, urlColumns, pathToFile, (status)->
-              console.log '%s : cache successfully created : %s', tableName, format
+              console.log '%s : cache successfully created : %s', repo_name, format
               callback && callback null              
               
           

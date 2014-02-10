@@ -36,6 +36,7 @@ fixture = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toSt
 
 describe "CacheManager", ()->
   beforeEach (done) ->
+    @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
     @test_folder = "/tmp/test_folder/"
     rimraf.sync @test_folder
     fs.rmdirSync(@test_folder) if fs.existsSync(@test_folder)
@@ -50,6 +51,12 @@ describe "CacheManager", ()->
         @km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
           done()
 
+  it "should return valid cacheKey", (done)->
+    query = {}
+    expect(@cm.getCacheKey @repo_name, {}).toEqual(@repo_name + "_" + crypto.createHash('md5').update(kson.stringify(query)).digest("hex"))
+    done()
+
+
   it "should create a cache folder if it does not exist", (done)->
     fs.rmdirSync(@test_folder) if fs.existsSync(@test_folder)
     expect(fs.existsSync @test_folder).toBe false
@@ -57,6 +64,10 @@ describe "CacheManager", ()->
     expect(fs.existsSync @test_folder).toBe true
     done()
 
+  it "should generateCache", (done)->
+    expect(false).toBe true
+
   it "should clear cache folder of all files", (done)->
+    @cm.generateCache
     expect(false).toBe true
     done()
