@@ -56,3 +56,7 @@ describe "CacheManager", ()->
     cm = new CacheController @test_folder, dbRepo, recordBody
     expect(fs.existsSync @test_folder).toBe true
     done()
+
+  it "should clear cache folder of all files", (done)->
+    expect(false).toBe true
+    done()

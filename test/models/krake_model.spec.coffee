@@ -55,16 +55,27 @@ describe "KrakeModel", ->
       expect(km.columns.length).toEqual 6
       done()
 
+  describe "colName", ->
+    it "should return correct common column name", (done)->
+      expect(@km.colName "pingedAt").toBe '"pingedAt"'
+      done()
+
+    it "should return correct repository column name", (done)->
+      expect(@km.colName "col1").toBe "properties::hstore->'col1'"
+      done()
+
   describe "getQuery", =>
     it "should call all the sub clauses", (done)->
       spyOn(@km, 'selectClause').andCallThrough()
       spyOn(@km, 'whereClause').andCallThrough()
+      spyOn(@km, 'orderClause').andCallThrough()
       query_string = @km.getQuery({})
       expect(()=>  
         @dbRepo.query query_string
       ).not.toThrow()      
       expect(@km.selectClause).toHaveBeenCalled()
       expect(@km.whereClause).toHaveBeenCalled()
+      expect(@km.orderClause).toHaveBeenCalled()
       done()
 
     it "should call all the sub clauses", (done)->
@@ -259,20 +270,17 @@ describe "KrakeModel", ->
         ).not.toThrow()
         done()
 
-  describe "colName", ->
-    it "should return correct common column name", (done)->
-      expect(@km.colName "pingedAt").toBe '"pingedAt"'
-      done()
-
-    it "should return correct repository column name", (done)->
-      expect(@km.colName "col1").toBe "properties::hstore->'col1'"
-      done()
-
   describe "whereClause", ->
+
     it "should not return any where condition if there are not where conditions in query_obj", (done)->
       where_clause = @km.whereClause {}
-      expect(where_clause).toEqual ""
-      done()      
+      expect(where_clause).toEqual false
+      done()
+
+    it "should return false when $where is an empty array", (done)->
+      where_clause = @km.whereClause {}
+      expect(where_clause).toEqual false
+      done()
 
     it "should return well formated '=' where condition for common column", (done)->
       query_obj = 
@@ -530,4 +538,84 @@ describe "KrakeModel", ->
         }]
       where_clause = @km.whereClause query_obj
       expect(where_clause).toEqual "('pingedAt' = '2013-07-06 02:57:09' or ('updatedAt' = '2013-07-06 02:57:09' and 'createdAt' = '2013-07-06 02:57:09'))"
+      done()
+
+  describe "orderClause", ->
+    it "should not return ordering conditions when $order is missing", (done)->
+      query_obj = {}
+      order_clause = @km.orderClause query_obj
+      expect(order_clause).toEqual false
+      done()
+
+    it "should not return ordering conditions when $order is an empty array", (done)->
+      query_obj = { $order : [] }
+      order_clause = @km.orderClause query_obj
+      expect(order_clause).toEqual false
+      done()
+
+    it "should return well formatted ordering for common columns", (done)->
+      query_obj = 
+        $order : [{
+          $asc : "pingedAt"
+        }]
+      order_clause = @km.orderClause query_obj
+      expect(order_clause).toEqual '"pingedAt" asc'
+      done()
+
+    it "should return well formatted ordering for repository specific columns", (done)->
+      query_obj = 
+        $order : [{
+          $asc : "drug bank"
+        }]
+      order_clause = @km.orderClause query_obj
+      expect(order_clause).toEqual "properties::hstore->'drug bank' asc"
+      done()
+
+    it "should return well formatted compound ordering", (done)->
+      query_obj = 
+        $order : [{
+            $asc : "pingedAt"
+          },{
+            $desc : "drug bank"
+        }]
+      order_clause = @km.orderClause query_obj
+      expect(order_clause).toEqual '"pingedAt" asc,properties::hstore->\'drug bank\' desc'
+      done()
+
+    it "should return well formatted ordering that does not cause an error", (done)->
+      query_obj = 
+        $select : ["pingedAt"]
+        $order : [{
+            $asc : "pingedAt"
+          },{
+            $desc : "drug bank"          
+        }]
+      query_string = @km.getQuery query_obj
+      expect(()=>
+        @dbRepo.query query_string
+      ).not.toThrow()
+      done()
+
+  describe "limitClause", ->
+    it "should return a limit for 10 and not cause an error", (done)->
+      query_obj = 
+        $select : ["drug bank"]
+        $limit : 10
+      query_string = @km.getQuery query_obj
+      expect(query_string.match("LIMIT 10").length).toEqual 1
+      expect(()=>
+        @dbRepo.query query_string
+      ).not.toThrow()
+      done()
+
+  describe "offsetClause", ->
+    it "should return an offset of 10 and not cause an error", (done)->
+      query_obj = 
+        $select : ["drug bank"]
+        $offset : 10
+      query_string = @km.getQuery query_obj
+      expect(query_string.match("OFFSET 10").length).toEqual 1
+      expect(()=>
+        @dbRepo.query query_string
+      ).not.toThrow()
       done()

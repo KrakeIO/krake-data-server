@@ -61,7 +61,7 @@ A JSON object that contains the following clauses
   - $where : the conditions to be used for selecting the records
   - $order : the order in which to order the records returned
   - $limit : the total number of records to return
-  - $skip : the number of records to discard before returning the first set of records
+  - $offset : the number of records to discard before returning the first set of records
 
 ```json
 http://krake-data-server/:table_name/search/:format?q={ 
@@ -69,7 +69,7 @@ http://krake-data-server/:table_name/search/:format?q={
     $where : [...],
     $order : [...],
     $limit : 10,
-    $skip : 20
+    $offset : 20
   }
 ```
 
@@ -230,4 +230,39 @@ $where : [{
   ] 
 }]
 
+```
+
+### $order clause
+```json
+$order : [{condition1}, {condition2}, {condition3}... {conditionN}]
+```
+
+#### operator $asc
+Select records in ascending order by col_name1
+```json
+$order : [{ 
+  $asc: "col_name1"
+}]
+
+```
+
+#### operator $desc
+Select records in ascending order by col_name1
+```json
+$order : [{ 
+  $desc: "col_name1"
+}]
+
+```
+
+### $limit clause
+Select the first 10 records that match the condition
+```json
+$limit : 10
+```
+
+#### $offset clause
+Skip the first 10 records and select the rest
+```json
+$offset : 10
 ```

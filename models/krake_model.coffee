@@ -38,6 +38,21 @@ class KrakeModel
                     ' FROM "' + @repo_name + '" ' + 
                     ' WHERE ' + (@whereClause(query_obj) || 'true')
 
+    
+    if order_clause = @orderClause query_obj then query_string += ' ORDER BY ' + order_clause 
+    if query_obj.$limit && query_obj.$limit > 0 then query_string += ' LIMIT ' + query_obj.$limit
+    if query_obj.$offset && query_obj.$offset > 0 then query_string += ' OFFSET ' + query_obj.$offset
+    query_string
+
+  colName : (column)->
+    if column in @common_cols 
+      '"' + column.replace(/'/, '\\\'') + '"'
+    else 
+      "properties::hstore->'" + column.replace(/'/, '\\\'') + "'"
+
+  colLabel : (column)->
+    '"' + column.replace(/'/, '\\\'') + '"'
+
   selectClause : (query_obj)->
 
     sel_cols = query_obj.$select || @columns
@@ -56,7 +71,7 @@ class KrakeModel
               "count(" + @colName(column[operator]) + ") as " + @colLabel(column[operator]) 
 
             when "$distinct"
-              'distinct cast(' + @colName(column[operator]) + ' as text) as "' + column[operator].replace(/'/, '\\\'') + '"'
+              'distinct cast(' + @colName(column[operator]) + ' as text) as ' + @colLabel(column[operator])
 
             when "$max"
               "max(" + @colName(column[operator]) + ") as " + @colLabel(column[operator]) 
@@ -80,17 +95,8 @@ class KrakeModel
     query = "1" if sel_cols.length == 0
     query
 
-  colName : (column)->
-    if column in @common_cols 
-      '"' + column.replace(/'/, '\\\'') + '"'
-    else 
-      "properties::hstore->'" + column.replace(/'/, '\\\'') + "'"
-
-  colLabel : (column)->
-    '"' + column.replace(/'/, '\\\'') + '"'
-
   whereClause : (query_obj)->
-    return "" unless query_obj.$where 
+    return false unless query_obj.$where && query_obj.$where.length > 0
 
     query = []
     for condition_obj in query_obj.$where then do (condition_obj)=>
@@ -140,9 +146,13 @@ class KrakeModel
       
     query.join(" and ")
 
-  limitClause : (query_obj)->
-
-  skipClause : (query_obj)->
-
+  orderClause : (query_obj)->
+    return false unless query_obj.$order && query_obj.$order.length > 0
+    query_obj.$order.map((column)=>
+      operator = Object.keys(column)[0]
+      switch operator
+        when "$asc" then @colName(column[operator]) + " asc" 
+        when "$desc" then @colName(column[operator]) + " desc" 
+    ).join(",")
 
 module.exports = KrakeModel
