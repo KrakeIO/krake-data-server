@@ -13,7 +13,7 @@ class CacheManager
     fs.mkdirSync(@cachePath) unless fs.existsSync(@cachePath)
 
   getCacheKey: (repo_name, query)->
-    repo_name + "_" + crypto.createHash('md5').update(kson.stringify(query)).digest("hex")
+    repo_name + "_" + crypto.createHash('md5').update(query).digest("hex")
   
   # @Description : returns the path to the cached record 
   # @param : repo_name:String
@@ -42,8 +42,12 @@ class CacheManager
   # @param : callback:function(error:String, status:Boolean)->
   clearCache: (repo_name, callback)->
     callback && callback null, true
+    fs.readdirSync(@cachePath).forEach (file_name)=>
+      if file_name.indexOf(repo_name) != -1
+        file_path = @cachePath + file_name
+        fs.unlinkSync file_path
 
-
+    callback && callback()
 
   # @Description : generates a cached record
   # @param : repo_name:String
@@ -51,10 +55,9 @@ class CacheManager
   # @param : urlColumns:array
   # @param : query:string
   # @param : format:string
-  # @param : pathToFile:string  
   # @param : callback:function(error:string)  
-  generateCache: (repo_name, columns, urlColumns, query, format callback)->
-    pathToFile = @getCacheKey repo_name, query
+  generateCache: (repo_name, columns, urlColumns, query, format, callback)->
+    pathToFile = @cachePath + @getCacheKey(repo_name, query) + "." + format
     model = @dbRepo.define repo_name, @modelBody
     cbSuccess = ()=>
       switch format
@@ -64,18 +67,13 @@ class CacheManager
 
         when 'csv'
           query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
-          console.log query
-      
+
       @dbRepo.query(query).success(
         (rows)=>
           switch format
-            when 'json', 'csv'
-              console.log '%s : cache successfully created : %s', repo_name, format
-              callback && callback null
-                
+            when 'json', 'csv' then callback && callback null
             when 'html'
               @writeHtmlToCache rows, columns, urlColumns, pathToFile, (status)->
-              console.log '%s : cache successfully created : %s', repo_name, format
               callback && callback null              
               
           
