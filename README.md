@@ -37,7 +37,46 @@ export KRAKE_PG_PASSWORD='your_password'
 export KRAKE_PG_HOST='your_host_location'
 ```
 
-## Run server
+### Create databases
+Testing environment
+```console
+# Where your scraped data is stored
+scraped_data_repo_test
+
+# Where your data definitions will be stored is stored
+dev_panel_test
+```
+
+Development environment
+```console
+# Where your scraped data is stored
+scraped_data_repo_development
+
+# Where your data definitions will be stored is stored
+dev_panel_development
+```
+
+Production environment
+```console
+# Where your scraped data is stored
+scraped_data_repo
+
+# Where your data definitions will be stored is stored
+dev_panel
+```
+
+Make sure to run the following command to install HStore in all the databases that will be storing your scraped data
+```console
+CREATE EXTENSION hstore;
+```
+
+### Unit test 
+Run the following comming in root location of your project's repository to ensure your setup is working properly
+```console
+jasmine-node --coffee test
+```
+
+## Start server
 ```console
 coffee krake_data_server.coffee
 ```

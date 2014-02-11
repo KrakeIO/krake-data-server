@@ -52,9 +52,13 @@ app.configure ()->
   app.use(app.router);
   return app.use(express["static"](__dirname + "/public"))
 
-# @Description : Redirects users to our documentation page if they come here directly via a GET request
+# @Description : Indicates to the user that this is a Krake data server
 app.get '/', (req, res)->
   res.send 'Krake Data Server'
+
+# @Description : Indicates the current environment this Krake data server is running in
+app.get '/env', (req, res)->
+  res.send ENV
 
 # @Description : clears all the cache generated for table
 app.get '/:data_repository/clear_cache', (req, res)=>
@@ -69,28 +73,35 @@ app.get '/:data_repository/:format', (req, res)=>
   data_repository = req.params.data_repository
   km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
     query_obj = req.query.q && JSON.parse(req.query.q) || {}
-    console.log query_obj
     query_string = km.getSelectStatement query_obj
-    console.log query_string
-    # cm.getCache data_repository, [], [], query_string, req.params.format, (error, path_to_cache)=>
     cm.getCache data_repository, km.columns, km.url_columns, query_string, req.params.format, (error, path_to_cache)=>
       if req.params.format == 'csv'
         res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
       fs.createReadStream(path_to_cache).pipe res
-      
-# Start api server
-port = process.argv[2] || 9803
-app.listen port
 
-console.log "Connections Established " + 
-  "\n    Environment : %s" + 
-  "\n    User Name : %s" + 
-  "\n    Password : %s" + 
-  "\n    Port : %s" + 
-  "\n    Host : %s" + 
-  "\n    Krake Definition DB : %s" +   
-  "\n    Krake Scraped Data DB : %s" + 
-  "\n    Data server listening at port : %s",
-  ENV, userName, password, options.port, options.host, CONFIG.postgres.database, CONFIG.userDataDB, port
+module.exports = 
+  app : app
+  dbRepo : dbRepo
+  dbSystem : dbSystem
+  krakeSchema : krakeSchema
+  Krake :  Krake
+  recordBody : recordBody
+  CacheController : CacheController
+
+if !module.parent
+  # Start api server
+  port = process.argv[2] || 9803
+  app.listen port
+
+  console.log "Connections Established " + 
+    "\n    Environment : %s" + 
+    "\n    User Name : %s" + 
+    "\n    Password : %s" + 
+    "\n    Port : %s" + 
+    "\n    Host : %s" + 
+    "\n    Krake Definition DB : %s" +   
+    "\n    Krake Scraped Data DB : %s" + 
+    "\n    Data server listening at port : %s",
+    ENV, userName, password, options.port, options.host, CONFIG.postgres.database, CONFIG.userDataDB, port
 
 
