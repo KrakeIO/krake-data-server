@@ -284,6 +284,34 @@ Make sure to run the following command to install HStore in all the databases th
 CREATE EXTENSION hstore;
 ```
 
+#### tables that exist in <code>DATABASE::dev_panel</code>
+There is only one table in this database and its name is <code>krakes</code>
+```console
+CREATE TABLE krakes (
+    id bigint,
+    name text,
+    content text,
+    frequency text,
+    handle text,
+    last_ran timestamp with time zone,
+    status text,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+```
+
+#### sample of how a data table in <code>DATABASE::scraped_data_repo<code> looks like
+An example of how a dynamically generated scraped data repository table looks like
+```console
+CREATE TABLE data_repository_table (
+    properties hstore,
+    "pingedAt" timestamp with time zone,
+    id integer NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+```
+
 ### Unit test 
 Run the following comming in root location of your project's repository to ensure your setup is working properly
 ```console
