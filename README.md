@@ -18,73 +18,6 @@ Provides RESTFUL API for Postgresql HSTORE database used in [Krake's Data Harves
 - Scraped data repositories will be allocated to specific Krake Data Servers.
 - Record of corresponding location of the Krake Data Server for each scraped data repository will be maintained at the application layer
 
-## Pre-requisities
-- NodeJS — v0.8.8
-- Coffee-Script
-- PostGresql 9.2.2
-
-## Setup
-
-### Installation
-```console
-git clone git@github.com:KrakeIO/krake-toolkit.git
-cd krake-toolkit
-npm install
-npm install coffee-script -g
-```
-
-### Configuration
-Write the following lines in your ~/.bashrc file
-```console
-export KRAKE_PG_USERNAME='your_username'
-export KRAKE_PG_PASSWORD='your_password'
-export KRAKE_PG_HOST='your_host_location'
-```
-
-### Create databases
-Testing environment
-```console
-# Where your scraped data is stored
-scraped_data_repo_test
-
-# Where your data definitions will be stored is stored
-dev_panel_test
-```
-
-Development environment
-```console
-# Where your scraped data is stored
-scraped_data_repo_development
-
-# Where your data definitions will be stored is stored
-dev_panel_development
-```
-
-Production environment
-```console
-# Where your scraped data is stored
-scraped_data_repo
-
-# Where your data definitions will be stored is stored
-dev_panel
-```
-
-Make sure to run the following command to install HStore in all the databases that will be storing your scraped data
-```console
-CREATE EXTENSION hstore;
-```
-
-### Unit test 
-Run the following comming in root location of your project's repository to ensure your setup is working properly
-```console
-jasmine-node --coffee test
-```
-
-## Start server
-```console
-coffee krake_data_server.coffee
-```
-
 # Query Operators
 HTTP GET Request to query Krake data server for data. 
 Important: Operators made available are restricted to ones that are indempotent of nature
@@ -309,3 +242,71 @@ Skip the first 10 records and select the rest
 ```json
 $offset : 10
 ```
+
+# Setup
+
+### Pre-requisities
+- NodeJS — v0.8.8
+- Coffee-Script
+- PostGresql 9.2.2 - HSTORE
+
+### Installation
+```console
+git clone git@github.com:KrakeIO/krake-toolkit.git
+cd krake-toolkit
+npm install
+npm install coffee-script -g
+```
+
+### Configuration
+Write the following lines in your ~/.bashrc file
+```console
+export KRAKE_PG_USERNAME='your_username'
+export KRAKE_PG_PASSWORD='your_password'
+export KRAKE_PG_HOST='your_host_location'
+```
+
+### Create databases
+Testing environment
+```console
+# Where your scraped data is stored
+scraped_data_repo_test
+
+# Where your data definitions will be stored is stored
+dev_panel_test
+```
+
+Development environment
+```console
+# Where your scraped data is stored
+scraped_data_repo_development
+
+# Where your data definitions will be stored is stored
+dev_panel_development
+```
+
+Production environment
+```console
+# Where your scraped data is stored
+scraped_data_repo
+
+# Where your data definitions will be stored is stored
+dev_panel
+```
+
+Make sure to run the following command to install HStore in all the databases that will be storing your scraped data
+```console
+CREATE EXTENSION hstore;
+```
+
+### Unit test 
+Run the following comming in root location of your project's repository to ensure your setup is working properly
+```console
+jasmine-node --coffee test
+```
+
+## Start server
+```console
+coffee krake_data_server.coffee
+```
+
