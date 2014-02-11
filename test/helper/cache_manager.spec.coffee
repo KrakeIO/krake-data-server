@@ -1,9 +1,13 @@
+crypto = require 'crypto'
 fs = require 'fs'
+rimraf = require 'rimraf'
 kson = require 'kson'
 Sequelize = require 'sequelize'
+ktk = require 'krake-toolkit'
+krakeSchema = ktk.schema.krake
 
 CONFIG = null
-ENV = (process.env['NODE_ENV'] || 'development').toLowerCase()
+ENV = "test"
 try 
   CONFIG = kson.parse(fs.readFileSync(__dirname + '/../../config/config.js').toString())[ENV];
 catch error
@@ -22,104 +26,173 @@ options.pool = pool
 userName = process.env['KRAKE_PG_USERNAME'] || CONFIG.postgres.username
 password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
-dbHandler = new Sequelize CONFIG.postgres.database, userName, password, options
-db_dev = new Sequelize CONFIG.userDataDB, userName, password, options
+dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
+dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 
 recordBody = require '../../schema/record'
 CacheController = require '../../controllers/cache_controller'
 KrakeModel = require '../../models/krake_model'
-
-cm = new CacheController '/tmp/', dbHandler, recordBody
-km = new KrakeModel db_dev
+fixture = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
 
 
-describe "Testing Cache Manager", ()->
-
-  it "should return a correct previous batch date", (done)->
-    cm.getBatches "1_worldwide_directory_of_public_companieseses", (batches)->
-      batches = ["2013-09-20 10:28:26","2013-09-01 10:44:04","2013-09-01 10:38:29"]    
-      expect(batches.length).toBe(3)
-      expect(batches[0]).toBe(batches[0])
-      expect(batches[1]).toBe(batches[1])
-      expect(batches[2]).toBe(batches[2])
-      done()
-
-  it "should return a correct previous batch date", (done)->
-    cm.getPreviousBatch "1_worldwide_directory_of_public_companieseses", "2013-09-20 10:28:26", (batch)->
-      expect(batch).toBe("2013-09-01 10:44:04")
-      done()
-      
-  it "should return false when previous batch does not exist", (done)->
-    cm.getPreviousBatch "1_worldwide_directory_of_public_companieseses", "2013-09-01 10:38:29", (batch)->
-      expect(batch).toBe(false)
-      done()
-      
-  it "should return false when current batch does not exist", (done)->
-    cm.getPreviousBatch "1_worldwide_directory_of_public_companieseses", "2013-09-01 10:11:29", (batch)->
-      expect(batch).toBe(false)
-      done()
-
-  
-  it "should generate a cached diff file in csv format", (done)->
-    tableName = "1_worldwide_directory_of_public_companieseses"  
-    km = new KrakeModel db_dev, tableName, ()=> 
-      queryForUpdate = 'SELECT ' + 
-        km.getColumnsQuery() +
-        ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
-        ' FROM "' + tableName + '" ' +
-        ' WHERE "updatedAt" = \'2013-09-20 10:28:26\' '
-      
-      forDeleted = 'SELECT ' + 
-        km.getColumnsQuery() +
-        ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
-        ' FROM "' + tableName + '" ' +
-        ' WHERE '+ 
-        ' "pingedAt" = \'2013-09-01 10:44:04\'  '      
-      
-      testPath = '/tmp/mytest.csv'
-      fs.existsSync(testPath) && fs.unlinkSync(testPath)
-      cm.generateDiffCache km, queryForUpdate, forDeleted, 'csv', testPath, (result)=>
-        expect(result).toBe(null)
-        expect(fs.existsSync(testPath)).toBe(true)
-        done()
-        
-  it "should generate a cached diff file in json format", (done)->
-    tableName = "1_worldwide_directory_of_public_companieseses"  
-    km = new KrakeModel db_dev, tableName, ()=>          
-      queryForUpdate = 'SELECT ' + 
-        km.getColumnsQuery() +
-        ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
-        ' FROM "' + tableName + '" ' +
-        ' WHERE "updatedAt" = \'2013-09-20 10:28:26\' '
-
-      forDeleted = 'SELECT ' + 
-        km.getColumnsQuery() +
-        ' ,\"createdAt\", \"updatedAt\", \"pingedAt\" ' + 
-        ' FROM "' + tableName + '" ' +
-        ' WHERE '+ 
-        ' "pingedAt" = \'2013-09-01 10:44:04\'  '      
-
-      testPath = '/tmp/mytest.json'
-      fs.existsSync(testPath) && fs.unlinkSync(testPath)
-      cm.generateDiffCache km, queryForUpdate, forDeleted, 'json', testPath, (result)=>
-        expect(result).toBe(null)
-        expect(fs.existsSync(testPath)).toBe(true)
-        try
-          kson.parse(fs.readFileSync(testPath).toString())
-        catch e
-          expect(e).toBe(undefined)
-        done()          
+describe "CacheManager", ->
+  beforeEach (done) ->
+    @dbRepo = dbRepo
+    @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
+    @test_folder = "/tmp/test_folder/"
+    rimraf.sync @test_folder
+    @repo_name = "test_tables"
     
-  it "should detect for generate new diff cache in json format", (done)->
-    spyOn(cm, 'generateDiffCache').andCallThrough()
-      
-    tableName = "1_worldwide_directory_of_public_companieseses"
-    testPath = "/tmp/1_worldwide_directory_of_public_companieseses_b764618c206490510bef00cbc67de05a_diff.json"
-    fs.existsSync(testPath) && fs.unlinkSync(testPath)
-    
-    km = new KrakeModel db_dev, tableName, ()=>
-      cm.getDiffCache km, '2013-09-20 10:28:26', 'json', (err, pathToFile)=>
-        expect(err).toBe(null)
-        expect(typeof pathToFile).toBe("string")
-        expect(cm.generateDiffCache).toHaveBeenCalled()
+    @Krake = dbSystem.define 'krakes', krakeSchema 
+    @Krake.sync({force: true}).success ()=>
+      @Krake.create({ content: fixture, handle: @repo_name})   
+      @cm = new CacheController @test_folder, dbRepo, recordBody
+      @Records = dbRepo.define @repo_name, recordBody  
+      @Records.sync({force: true}).success ()=>
+        @km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
+          done()
+
+  afterEach (done)->
+    rimraf.sync @test_folder
+    done()
+
+  it "should create a cache folder if it does not exist", (done)->
+    fs.rmdirSync(@test_folder) if fs.existsSync(@test_folder)
+    expect(fs.existsSync @test_folder).toBe false
+    cm = new CacheController @test_folder, dbRepo, recordBody
+    expect(fs.existsSync @test_folder).toBe true
+    done()
+
+  describe "getCacheKey", ->
+    it "should return valid cacheKey", (done)->
+      query_string = ""
+      expect(@cm.getCacheKey @repo_name, query_string).toEqual(@repo_name + "_" + crypto.createHash('md5').update(query_string).digest("hex"))
+      done()
+
+  describe "getCache", ->
+    it "should return path to cache", (done)->
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+      @cm.getCache @repo_name, [], [], query_string, format, (error, generate_path_to_cache)=>
+        expect(error).toEqual null
+        expect(generate_path_to_cache).toEqual path_to_file
         done()
+
+    it "should call generateCache if cache does not already exist", (done)->
+      spyOn(@cm, 'generateCache').andCallThrough()      
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+      @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+        expect(@cm.generateCache).toHaveBeenCalled()
+        done()
+
+    it "should not call generateCache if cache already exist", (done)->
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+      @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+        spyOn(@cm, 'generateCache').andCallThrough()
+        @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+          expect(@cm.generateCache).not.toHaveBeenCalled()
+          done()
+
+  describe "generateCache", ->
+    it "should generate cache without error", (done)->
+      query = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      @cm.generateCache(@repo_name, [], [], query, "json", (error)=>
+        expect(error).toEqual(null)
+        done()
+      )
+
+    it "should generate cache in folder location", (done)->
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string        
+      path_to_file = @test_folder + cache_name + '.' + format
+      @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+        expect(fs.existsSync(path_to_file)).toBe true
+        done()
+
+    it "should generate cache that is valid JSON format", (done)->
+      format = 'json'      
+      data_obj1 = 
+        "drug bank" : "cache that stuff"
+      query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"] }
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+
+      insert_query1 = @km.getInsertStatement(data_obj1)
+      promise1 = @dbRepo.query(insert_query1)
+      promise1.then ()=>
+
+        @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+          expect(fs.existsSync path_to_file).toBe true
+          expect(()=>
+            JSON.parse fs.readFileSync(path_to_file)
+          ).not.toThrow()
+
+          data_obj = JSON.parse fs.readFileSync(path_to_file)
+          expect(data_obj[0]['drug bank']).toEqual "cache that stuff"
+          done()
+
+
+    it "should generate cache that is valid JSON format", (done)->
+      format = 'json'      
+      data_obj1 = 
+        "drug \"bank" : "cache \"that double quote"
+        "drug \'name" : "cache \'that single quote"
+      query_string = @km.getSelectStatement { $select : ["drug \"bank", "drug \'name", "pingedAt"] }
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+
+      insert_query1 = @km.getInsertStatement(data_obj1)
+      promise1 = @dbRepo.query(insert_query1)
+      promise1.then ()=>
+
+        @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+          expect(fs.existsSync path_to_file).toBe true
+          expect(()=>
+            JSON.parse fs.readFileSync(path_to_file)
+          ).not.toThrow()
+
+          data_obj = JSON.parse fs.readFileSync(path_to_file)
+          expect(data_obj[0]['drug &#34;bank']).toEqual "cache &#34;that double quote"
+          expect(data_obj[0]['drug &#39;name']).toEqual "cache &#39;that single quote"
+          done()
+
+  describe "clearCache", ->
+    it "should clear cache folder of all files belonging to repository", (done)->
+      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
+      format = 'json'
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+        expect(fs.existsSync(@test_folder + cache_name + '.' + format)).toBe true
+        @cm.clearCache @repo_name, ()->
+          expect(fs.existsSync(@test_folder + cache_name + '.' + format)).toBe false
+          done()
+
+  describe "writeHtmlToCache", ->
+    it "should render valid HTML pages", (done)->
+      format = 'html'      
+      data_obj1 = 
+        "drug bank" : "cache that stuff"
+      query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"] }
+      cache_name = @cm.getCacheKey @repo_name, query_string
+      path_to_file = @test_folder + cache_name + '.' + format
+
+      insert_query1 = @km.getInsertStatement(data_obj1)
+      promise1 = @dbRepo.query(insert_query1)
+      promise1.then ()=>
+
+        @cm.generateCache @repo_name, ["drug bank", "pingedAt"], [], query_string, format, (error)=>
+          expect(fs.existsSync path_to_file).toBe true
+          html_output = fs.readFileSync(path_to_file).toString()
+          expect(html_output.match("drug bank").length).toBe 1
+          expect(html_output.match("cache that stuff").length).toBe 1
+          done()
+

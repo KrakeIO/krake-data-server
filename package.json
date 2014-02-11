@@ -6,8 +6,8 @@
   , "private": true
   , "engines": {
     "node": "=0.8.8"
-  }  
-  , "dependencies": {
+  }, 
+  "dependencies": {
       "async": ""
     , "ejs": "0.6.1"
     , "express": "2.5.7"
@@ -15,6 +15,10 @@
     , "kson": "https://github.com/KrakeIO/kson/tarball/master"
     , "pg" : ""
     , "pg-hstore" : ""
+    , "rimraf": ""
     , "sequelize": ""
+  },
+  "devDependencies": {
+    "request": ""
   }
 }

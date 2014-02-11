@@ -1,35 +1,7 @@
-# Krake's Data Server
+# Krake's Data Export API 
 
-The system that interfaces the exporting of harvested data from Krake's web scraping engine
-used in [Krake's Web Scraping Engine] (https://krake.io)
-
-## Pre-requisities
-- NodeJS — v0.8.8
-- Coffee-Script
-- PostGresql 9.2.2
-
-## Setup
-
-### Installation
-```console
-git clone git@github.com:KrakeIO/krake-toolkit.git
-cd krake-toolkit
-npm install
-npm install coffee-script -g
-```
-
-### Configuration
-Write the following lines in your ~/.bashrc file
-```console
-export KRAKE_PG_USERNAME='your_username'
-export KRAKE_PG_PASSWORD='your_password'
-export KRAKE_PG_HOST='your_host_location'
-```
-
-## Run server
-```console
-coffee krake_data_server.coffee
-```
+## Overview
+Provides RESTFUL API for Postgresql HSTORE database used in [Krake's Data Harvesting Engine] (https://krake.io)
 
 # Query Operators
 HTTP GET Request to query Krake data server for data. 
@@ -50,115 +22,288 @@ A JSON object that contains the following clauses
   - $where : the conditions to be used for selecting the records
   - $order : the order in which to order the records returned
   - $limit : the total number of records to return
-  - $skip : the number of records to discard before returning the first set of records
+  - $offset : the number of records to discard before returning the first set of records
 
 ```json
 http://krake-data-server/:table_name/search/:format?q={ 
-    $select : [ col_name1, col_name2, col_name3, col_name4 ],
-    $where : { 
-      col_name1 : value 
-    },
-    $order : [{
-      $asc : col_name1
-    }],
+    $select : [...],
+    $where : [...],
+    $order : [...],
     $limit : 10,
-    $skip : 20
+    $offset : 20
   }
 ```
 
-### where clause
+
+### $select clause
+```json
+$select : [col_name1, col_name2, col_name3,..., col_nameN]
+```
+
+#### operator simple
+Returns all the values in col_name
+```json
+$select : [col_name]
+```
+
+#### operator $count
+Returns a count of the rows
+```json
+$select : [{ $count: true }]
+```
+
+#### operator $distinct
+Returns distinct values from col_name
+```json
+$select : [{ $distinct: col_name }]
+```
+#### operator $max
+Returns the max value in col_name
+```json
+$select : [{ $max: col_name }]
+```
+
+#### operator $min
+Returns the max value in col_name
+```json
+$select : [{ $max: col_name }]
+```
+
+
+### $where clause
+```json
+$where : [{condition1}, {condition2}, {condition3}... {conditionN}]
+```
+
 #### operator =
 Select records where **col_name** = **value**
 ```json
-{ col_name : value }
+$where : [{ col_name : value }]
 
 ```
 
-#### operator contains
+#### operator $contains
 Select records where **col_name** contains **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $contains : value
   } 
-}
+}]
 ```
 
-#### operator greater than
+#### operator $gt
 Select records where **col_name** is greater than **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $gt : value
   }
-}
+}]
 ```
 
-#### operator greater than or equal
+#### operator $gte
 Select records where **col_name** is greater than or equal to **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $gte : value
   }
-}
+}]
 ```
 
-#### operator less than
+#### operator $lt
 Select records where **col_name** is lesser than **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $lt : value
   }
-}
+}]
 ```
 
-#### operator less than or equal
+#### operator $lte
 Select records where **col_name** is lesser than or equal to **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $lte : value
   }
-}
+}]
 ```
 
-#### operator not equal
+#### operator $ne
 Select records where **col_name** is not equal to **value**
 ```json
-{ col_name : { 
+$where : [{ 
+  col_name : { 
     $ne : value
   }
-}
+}]
 ```
 
-#### operator between
-Select records where **col_name** is between greater than **value1** and lesser than **value2** 
-```json
-{ col_name : { 
-    $gt : value1,
-    $lt : value2
-  }
-}
-```
-
-#### operator or
-Select records where either of the expressions are true
-```json
-{ $or : [ { <expression1> }, { <expression2> }, ... , { <expressionN> } ] }
-```
-
-#### operator and
-Select records where all of the expressions are true
-```json
-{ $and: [ { col_name: { $ne: 1.99 } }, { col_name: { $exists: true } } ] }
-{ col_name: { $ne: 1.99, $exists: true } }
-```
-
-#### operator exist
+#### operator $exist
 Ensures records returned do not have col_name value that is NULL
 ```json
-{ col_name: { $exist: true } }
+$where : [{ 
+  col_name: { $exist: true } 
+}]
 ```
 
-#### operator distinct
-Returns distinct values in col_name
+### Compound operators
+#### operator $or
+Select records where either of the expressions are true
 ```json
-{ col_name: { $distinct: true } }
+$where : [{ 
+  $or : [ 
+    { <expression1> }, 
+    { <expression2> }, ... , 
+    { <expressionN> } 
+  ] 
+}]
 ```
+
+#### operator $and
+Select records where col1 != 1.99 and col2 not Null
+```json
+$where : [{ 
+  $and: [ 
+    { col1: { $ne: 1.99 } }, 
+    { col2: { $exists: true } } 
+  ] 
+}]
+
+```
+
+### Multi-nested compound operators mixture 
+#### operator $and and $or
+Select records where col1 = "value for col1" and (col2 = "value for col2" or col3 = "value for col3") 
+```json
+$where : [{ 
+  $and: [ 
+    { col1: "value for col1" },
+    {  
+      $or: [
+        { col2: "value for col2" },
+        { col3: "value for col3" }
+      ]
+    }
+  ] 
+}]
+
+```
+
+### $order clause
+```json
+$order : [{condition1}, {condition2}, {condition3}... {conditionN}]
+```
+
+#### operator $asc
+Select records in ascending order by col_name1
+```json
+$order : [{ 
+  $asc: "col_name1"
+}]
+
+```
+
+#### operator $desc
+Select records in ascending order by col_name1
+```json
+$order : [{ 
+  $desc: "col_name1"
+}]
+
+```
+
+### $limit clause
+Select the first 10 records that match the condition
+```json
+$limit : 10
+```
+
+#### $offset clause
+Skip the first 10 records and select the rest
+```json
+$offset : 10
+```
+
+# Setup
+
+### Pre-requisities
+- NodeJS — v0.8.8
+- Coffee-Script
+- PostGresql 9.2.2 - HSTORE
+
+### Installation
+```console
+git clone git@github.com:KrakeIO/krake-toolkit.git
+cd krake-toolkit
+npm install
+npm install coffee-script -g
+```
+
+### Configuration
+Write the following lines in your ~/.bashrc file
+```console
+export KRAKE_PG_USERNAME='your_username'
+export KRAKE_PG_PASSWORD='your_password'
+export KRAKE_PG_HOST='your_host_location'
+```
+
+### Create databases
+Testing environment
+```console
+# Where your scraped data is stored
+scraped_data_repo_test
+
+# Where your data definitions will be stored is stored
+dev_panel_test
+```
+
+Development environment
+```console
+# Where your scraped data is stored
+scraped_data_repo_development
+
+# Where your data definitions will be stored is stored
+dev_panel_development
+```
+
+Production environment
+```console
+# Where your scraped data is stored
+scraped_data_repo
+
+# Where your data definitions will be stored is stored
+dev_panel
+```
+
+Make sure to run the following command to install HStore in all the databases that will be storing your scraped data
+```console
+CREATE EXTENSION hstore;
+```
+
+### Unit test 
+Run the following comming in root location of your project's repository to ensure your setup is working properly
+```console
+jasmine-node --coffee test
+```
+
+## Start server
+```console
+coffee krake_data_server.coffee
+```
+
+# Design thoughts and guiding principals
+- This API is not an attempting at describing fully the entire SQL grammar
+- This API should support only subsets of the SQL grammar that could be utilized without much impact of database performance in a fully sharded environment 
+- OPERATOR like GROUP BY has thus been deliberately left out of this API's grammar
+- <code>JOINS</code> across tables are evil
+- Databases slow down drastically when computing JOIN operations 
+- <code>JOIN</code> to be done at the application layer if at all required
+- This approach allows for easy horizontal scaling of Krake's Database Infrastructure moving forward
+
+### Proposed architecture to horizontal Scaling of database
+- Scraped data repositories will be allocated to specific Krake Data Servers.
+- Record of corresponding location of the Krake Data Server for each scraped data repository will be maintained at the application layer
