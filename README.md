@@ -3,21 +3,6 @@
 ## Overview
 Provides RESTFUL API for Postgresql HSTORE database used in [Krake's Data Harvesting Engine] (https://krake.io)
 
-### Goals
-- This API is not an attempting at describing fully the entire SQL grammar
-- This API should support only subsets of the SQL grammar that could be utilized without much impact of database performance in a fully sharded environment 
-- OPERATOR like GROUP BY has thus been deliberately left out of this API's grammar
-
-### Thoughts and guiding principals
-- <code>JOINS</code> across tables are evil
-- Databases slow down drastically when computing JOIN operations 
-- JOINING to be done at the application layer if at all required
-- This approach allows for easy horizontal scaling of Krake's Database Infrastructure moving forward
-
-### Horizontal Scaling of database
-- Scraped data repositories will be allocated to specific Krake Data Servers.
-- Record of corresponding location of the Krake Data Server for each scraped data repository will be maintained at the application layer
-
 # Query Operators
 HTTP GET Request to query Krake data server for data. 
 Important: Operators made available are restricted to ones that are indempotent of nature
@@ -310,3 +295,15 @@ jasmine-node --coffee test
 coffee krake_data_server.coffee
 ```
 
+# Thoughts and guiding principals in the design of Krake's Data Server
+- This API is not an attempting at describing fully the entire SQL grammar
+- This API should support only subsets of the SQL grammar that could be utilized without much impact of database performance in a fully sharded environment 
+- OPERATOR like GROUP BY has thus been deliberately left out of this API's grammar
+- <code>JOINS</code> across tables are evil
+- Databases slow down drastically when computing JOIN operations 
+- <code>JOIN</code> to be done at the application layer if at all required
+- This approach allows for easy horizontal scaling of Krake's Database Infrastructure moving forward
+
+### Proposed architecture to horizontal Scaling of database
+- Scraped data repositories will be allocated to specific Krake Data Servers.
+- Record of corresponding location of the Krake Data Server for each scraped data repository will be maintained at the application layer
