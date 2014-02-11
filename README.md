@@ -6,13 +6,17 @@ Provides RESTFUL API for Postgresql HSTORE database used in [Krake's Data Harves
 ### Goals
 - This API is not an attempting at describing fully the entire SQL grammar
 - This API should support only subsets of the SQL grammar that could be utilized without much impact of database performance in a fully sharded environment 
-- OPERATORS like GROUP BY and ORDER BY has thus been deliberately left out of this API's grammar
+- OPERATOR like GROUP BY has thus been deliberately left out of this API's grammar
 
 ### Thoughts and guiding principals
 - <code>JOINS</code> across tables are evil
 - Databases slow down drastically when computing JOIN operations 
-- SORTING and JOINING to be done at the application layer
-- This approach allows for easy Database replication and sharding moving forward
+- JOINING to be done at the application layer if at all required
+- This approach allows for easy horizontal scaling of Krake's Database Infrastructure moving forward
+
+### Horizontal Scaling of database
+- Scraped data repositories will be allocated to specific Krake Data Servers.
+- Record of corresponding location of the Krake Data Server for each scraped data repository will be maintained at the application layer
 
 ## Pre-requisities
 - NodeJS — v0.8.8
