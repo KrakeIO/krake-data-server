@@ -295,7 +295,7 @@ jasmine-node --coffee test
 coffee krake_data_server.coffee
 ```
 
-# Thoughts and guiding principals in the design of Krake's Data Server
+# Design thoughts and guiding principals
 - This API is not an attempting at describing fully the entire SQL grammar
 - This API should support only subsets of the SQL grammar that could be utilized without much impact of database performance in a fully sharded environment 
 - OPERATOR like GROUP BY has thus been deliberately left out of this API's grammar
