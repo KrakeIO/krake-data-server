@@ -8,7 +8,7 @@ HTTP GET Request to query Krake data server for data.
 Important: Operators made available are restricted to ones that are indempotent of nature
 
 ```console
-http://krake-data-server/:table_name/search/:format?q=query_object
+http://krake-data-server/:table_name/:format?q=query_object
 ```
 
 - :format
@@ -25,7 +25,7 @@ A JSON object that contains the following clauses
   - $offset : the number of records to discard before returning the first set of records
 
 ```json
-http://krake-data-server/:table_name/search/:format?q={ 
+http://krake-data-server/:table_name/:format?q={ 
     $select : [...],
     $where : [...],
     $order : [...],
