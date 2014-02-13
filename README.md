@@ -49,7 +49,7 @@ $select : [col_name]
 #### operator $count
 Returns a count of the rows
 ```json
-$select : [{ $count: true }]
+$select : [{ $count: col_name }]
 ```
 
 #### operator $distinct
