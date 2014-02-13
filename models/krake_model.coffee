@@ -147,7 +147,7 @@ class KrakeModel
       sub_query = ""
       switch typeof(condition_obj[col_name])
         when "string" # Operators : =
-          sub_query = "'" + col_name + "'" + " = '" + condition_obj[col_name] + "'"
+          sub_query = @colName(col_name) + " = '" + condition_obj[col_name] + "'"
 
         when "object"
           if condition_obj[col_name] instanceof Array  # Operators : $and, $or
@@ -164,29 +164,27 @@ class KrakeModel
             operator = Object.keys(condition_obj[col_name])[0]
             switch operator
               when "$contains"
-                sub_query = "'" + col_name + "'" + " like '%" + condition_obj[col_name][operator] + "%'"
+                sub_query = @colName(col_name) + " like '%" + condition_obj[col_name][operator] + "%'"
 
               when "$gt"
-                sub_query = "'" + col_name + "'" + " > '" + condition_obj[col_name][operator] + "'"
+                sub_query = @colName(col_name) + " > '" + condition_obj[col_name][operator] + "'"
 
               when "$gte"
-                sub_query = "'" + col_name + "'" + " >= '" + condition_obj[col_name][operator] + "'"
+                sub_query = @colName(col_name) + " >= '" + condition_obj[col_name][operator] + "'"
 
               when "$lt"
-                sub_query = "'" + col_name + "'" + " < '" + condition_obj[col_name][operator] + "'"
+                sub_query = @colName(col_name) + " < '" + condition_obj[col_name][operator] + "'"
 
               when "$lte"
-                sub_query = "'" + col_name + "'" + " <= '" + condition_obj[col_name][operator] + "'"
+                sub_query = @colName(col_name) + " <= '" + condition_obj[col_name][operator] + "'"
 
               when "$ne"
-                sub_query = "'" + col_name + "'" + " != '" + condition_obj[col_name][operator] + "'"
+                sub_query = @colName(col_name) + " != '" + condition_obj[col_name][operator] + "'"
 
               when "$exist"
-                sub_query = "'" + col_name + "'" + " not NULL"
+                sub_query = @colName(col_name) + " not NULL"
 
-      if(col_name not in @common_cols) && (col_name not in ["$and", "$or"]) then sub_query = @hstore_col + "->" + sub_query  
       query.push sub_query
-      
     query.join(" and ")
 
   orderClause : (query_obj)->
