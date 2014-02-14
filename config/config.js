@@ -30,6 +30,6 @@
       "database" : "scraped_data_repo"
     },
     "userDataDB" : "dev_panel",
-    "cachePath" : "/tmp/prod/"    
+    "cachePath" : "/tmp/"
   }
 }
