@@ -23,6 +23,7 @@ A JSON object that contains the following clauses
   - $order : the order in which to order the records returned
   - $limit : the total number of records to return
   - $offset : the number of records to discard before returning the first set of records
+  - $refresh : a boolean that tells the Krake server to clear the cache and fetch fresh data-set
 
 ```json
 http://krake-data-server/:table_name/:format?q={ 

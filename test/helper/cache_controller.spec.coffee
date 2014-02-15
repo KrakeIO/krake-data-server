@@ -70,36 +70,46 @@ describe "CacheManager", ->
       done()
 
   describe "getCache", ->
+    beforeEach ->
+      @query_obj = { $select : [{ $max : "pingedAt" }] }
+      @format ='json'
+      @query_string = @km.getSelectStatement @query_obj
+      @cache_name = @cm.getCacheKey @repo_name, @query_string
+      @path_to_file = @test_folder + @cache_name + '.' + @format      
+
     it "should return path to cache", (done)->
-      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
-      format = 'json'
-      cache_name = @cm.getCacheKey @repo_name, query_string
-      path_to_file = @test_folder + cache_name + '.' + format
-      @cm.getCache @repo_name, [], [], query_string, format, (error, generate_path_to_cache)=>
+      path_to_file = @test_folder + @cache_name + '.' + @format
+      @cm.getCache @repo_name, @km, @query_obj, @format, (error, generate_path_to_cache)=>
         expect(error).toEqual null
         expect(generate_path_to_cache).toEqual path_to_file
         done()
 
     it "should call generateCache if cache does not already exist", (done)->
       spyOn(@cm, 'generateCache').andCallThrough()      
-      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
-      format = 'json'
-      cache_name = @cm.getCacheKey @repo_name, query_string
-      path_to_file = @test_folder + cache_name + '.' + format
-      @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+      path_to_file = @test_folder + @cache_name + '.' + @format
+      @cm.getCache @repo_name, @km, @query_obj, @format, (error)=>
         expect(@cm.generateCache).toHaveBeenCalled()
         done()
 
     it "should not call generateCache if cache already exist", (done)->
-      query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
-      format = 'json'
-      cache_name = @cm.getCacheKey @repo_name, query_string
-      path_to_file = @test_folder + cache_name + '.' + format
-      @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+      @cm.getCache @repo_name, @km, @query_obj, @format, (error)=>
         spyOn(@cm, 'generateCache').andCallThrough()
-        @cm.getCache @repo_name, [], [], query_string, format, (error)=>
+        @cm.getCache @repo_name, @km, @query_obj, @format, (error)=>
           expect(@cm.generateCache).not.toHaveBeenCalled()
           done()
+
+    it "should call generateCache when $fresh is true", (done)->
+      @cm.getCache @repo_name, @km, @query_obj, @format, (error)=>
+        expect(fs.existsSync @path_to_file).toBe true
+        
+        spyOn(@cm, 'generateCache').andCallThrough()
+        @cm.getCache @repo_name, @km, @query_obj, @format, (error)=>
+          expect(@cm.generateCache).not.toHaveBeenCalled()
+          @query_obj.$fresh = true
+
+          @cm.getCache @repo_name, @km, @query_obj, @format, (error)=>
+            expect(@cm.generateCache).toHaveBeenCalled()
+            done()
 
   describe "generateCache", ->
     it "should generate cache without error", (done)->
@@ -166,7 +176,7 @@ describe "CacheManager", ->
           done()
 
   describe "clearCache", ->
-    it "should clear cache folder of all files belonging to repository", (done)->
+    it "should clear cache folder of one file belonging to repository", (done)->
       query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
       format = 'json'
       cache_name = @cm.getCacheKey @repo_name, query_string
@@ -175,6 +185,20 @@ describe "CacheManager", ->
         @cm.clearCache @repo_name, ()->
           expect(fs.existsSync(@test_folder + cache_name + '.' + format)).toBe false
           done()
+
+    it "should clear cache folder of all files belonging to repository", (done)->
+      query_string1 = @km.getSelectStatement { $select : [{ $min : "pingedAt" }] }
+      query_string2 = @km.getSelectStatement { $select : [{ $distinct : "pingedAt" }] }
+      format = 'json'
+      cache_name1 = @cm.getCacheKey @repo_name, query_string1
+      cache_name2 = @cm.getCacheKey @repo_name, query_string2
+      @cm.generateCache @repo_name, [], [], query_string1, format, (error)=>
+        @cm.generateCache @repo_name, [], [], query_string2, format, (error)=>
+          expect(fs.readdirSync(@test_folder).length).toEqual 2
+          @cm.clearCache @repo_name, ()->
+            expect(fs.existsSync(@test_folder + cache_name1 + '.' + format)).toBe false
+            expect(fs.existsSync(@test_folder + cache_name2 + '.' + format)).toBe false
+            done()
 
   describe "writeHtmlToCache", ->
     it "should render valid HTML pages", (done)->
