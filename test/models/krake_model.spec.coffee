@@ -35,6 +35,7 @@ describe "KrakeModel", ->
 
   beforeEach (done)->
     @dbRepo = dbRepo
+    @dbSystem = dbSystem
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
     @Krake = dbSystem.define 'krakes', krakeSchema
 
@@ -51,6 +52,13 @@ describe "KrakeModel", ->
         # instantiates a krake model
         @km = new KrakeModel dbSystem, @repo_name, ()->
           done()
+
+  it "should not crash when krake content is invalid", (done)->
+    promise1 = @Krake.create({ content: "", handle: @repo_name})
+    promise1.then =>
+      km = new KrakeModel @dbSystem, @repo_name, (is_valid)->
+        expect(is_valid).toBe true      
+        done()
 
   it "should return status as true when repository is valid", (done)->
     km = new KrakeModel dbSystem, @repo_name, (status, error_msg)->
