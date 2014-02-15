@@ -17,23 +17,24 @@ class CacheManager
   
   # @Description : returns the path to the cached record 
   # @param : repo_name:String
-  # @param : columns:array
-  # @param : urlColumns:array
-  # @param : query:string
+  # @param : krake:KrakeModel
+  # @param : query_obj:Object
   # @param : format:string
   # @param : callback:function(error:string, pathToFile:string)
-  getCache: (repo_name, columns, urlColumns, query, format, callback)->
+  getCache: (repo_name, krake, query_obj, format, callback)->
+
+    columns = krake.columns
+    urlColumns = krake.url_columns
+    query = krake.getSelectStatement query_obj
+
     cacheKey = @getCacheKey repo_name, query
     pathToFile = @cachePath + cacheKey + "." + format
-    
-    fs.exists pathToFile, ( exists )=>
-      if !exists then @generateCache repo_name, columns, urlColumns, query, format, (err)->
-        # console.log '%s : Created new cache : %s', repo_name, format
-        callback && callback err, pathToFile
         
-      else 
-        # console.log '%s : Cache exist : %s', repo_name, format
-        callback && callback null, pathToFile
+    if (!fs.existsSync(pathToFile) || query_obj.$fresh) then @generateCache repo_name, columns, urlColumns, query, format, (err)->
+      callback && callback err, pathToFile
+      
+    else 
+      callback && callback null, pathToFile
 
 
 

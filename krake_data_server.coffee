@@ -73,8 +73,7 @@ app.get '/:data_repository/:format', (req, res)=>
   data_repository = req.params.data_repository
   km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
     query_obj = req.query.q && JSON.parse(req.query.q) || {}
-    query_string = km.getSelectStatement query_obj
-    cm.getCache data_repository, km.columns, km.url_columns, query_string, req.params.format, (error, path_to_cache)=>
+    cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
       if req.params.format == 'csv'
         res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
       fs.createReadStream(path_to_cache).pipe res
