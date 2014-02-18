@@ -74,7 +74,7 @@ describe "KrakeModel", ->
 
   it "should have columns", (done)->
     km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
-      expect(km.columns.length).toEqual 6
+      expect(km.columns.length).toEqual 9
       done()
 
   describe "colName", ->
@@ -273,25 +273,38 @@ describe "KrakeModel", ->
           done()
 
   describe "selectClause", ->
-    it "should return the properly formatted common columns ", (done)->
-      select_clause = @km.selectClause { $select : [] }
-      expect(select_clause).toEqual '1'
+    it "should return pingedAt, createdAt, UpdatedAt by default when there is no select clause ", (done)->
+      select_clause = @km.selectClause {  }
+      checksum =  "properties::hstore->'drug bank' as \"drug bank\",properties::hstore->'drug name' as \"drug name\",properties::hstore->'categories' as \"categories\",properties::hstore->'therapeutic indication' as \"therapeutic indication\",properties::hstore->'origin_url' as \"origin_url\",properties::hstore->'origin_pattern' as \"origin_pattern\",\"createdAt\",\"updatedAt\",\"pingedAt\""
+      expect(select_clause).toEqual
       done()
 
-    it "should not return duplicated common columns ", (done)->
+    it "should return pingedAt, createdAt, UpdatedAt by default", (done)->
+      select_clause = @km.selectClause { $select : [] }
+      expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'
+      done()
+
+    it "should not return any duplicated status_col when it is already in the select clause", (done)->
+      select_clause = @km.selectClause { $select : ["pingedAt"] }
+      expect(select_clause).toEqual '"pingedAt","createdAt","updatedAt"'
+
+      select_clause = @km.selectClause { $select : ["updatedAt"] }
+      expect(select_clause).toEqual '"updatedAt","createdAt","pingedAt"'
+
       select_clause = @km.selectClause { $select : ["createdAt"] }
-      expect(select_clause).toEqual '"createdAt"'
+      expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'      
       done()
 
     it "should return the properly formatted repository columns", (done)->
       select_clause = @km.selectClause { $select : ["col1", "col2"] }
 
       expected_query =  "properties::hstore->'col1' as \"col1\"" +
-                        ",properties::hstore->'col2' as \"col2\""
+                        ",properties::hstore->'col2' as \"col2\"" +
+                        ',"createdAt","updatedAt","pingedAt"'
       expect(select_clause).toEqual expected_query
       done()
 
-    it "should return the properly formatted repository columns", (done)->
+    it "should return the full set of properly formatted repository columns and status columns", (done)->
       select_clause = @km.selectClause {}
 
       expected_query =  'properties::hstore->\'drug bank\' as "drug bank",' +
@@ -299,7 +312,8 @@ describe "KrakeModel", ->
                         'properties::hstore->\'categories\' as "categories",' +
                         'properties::hstore->\'therapeutic indication\' as "therapeutic indication",' +
                         'properties::hstore->\'origin_url\' as "origin_url",' +
-                        'properties::hstore->\'origin_pattern\' as "origin_pattern"'
+                        'properties::hstore->\'origin_pattern\' as "origin_pattern"' +
+                        ',"createdAt","updatedAt","pingedAt"'
       expect(select_clause).toEqual expected_query
       done()
 
@@ -410,6 +424,37 @@ describe "KrakeModel", ->
           @dbRepo.query query_string
         ).not.toThrow()
         done()
+
+  describe "hasAggregate", ->
+    it "should return false when has no $select clause", (done)->
+      query_obj = { }
+      expect(@km.hasAggregate query_obj).toEqual false
+      done()
+
+    it "should return false when has no aggregated selects", (done)->
+      query_obj = { $select : [ @km.columns[0]] }
+      expect(@km.hasAggregate query_obj).toEqual false
+      done()
+
+    it "should return true when has $count", (done)->
+      query_obj = { $select : [{ $count : @km.columns[0] }] }
+      expect(@km.hasAggregate query_obj).toEqual true
+      done()
+
+    it "should return true when has $distinct", (done)->
+      query_obj = { $select : [{ $distinct : @km.columns[0] }] }
+      expect(@km.hasAggregate query_obj).toEqual true
+      done()
+
+    it "should return true when has $max", (done)->
+      query_obj = { $select : [{ $max : @km.columns[0] }] }
+      expect(@km.hasAggregate query_obj).toEqual true
+      done()
+
+    it "should return true when has $min", (done)->
+      query_obj = { $select : [{ $max : @km.columns[0] }] }
+      expect(@km.hasAggregate query_obj).toEqual true
+      done()
 
   describe "whereClause", ->
 

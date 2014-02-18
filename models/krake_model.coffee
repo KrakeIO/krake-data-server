@@ -6,12 +6,17 @@ class KrakeModel
   
   constructor : (@dbRepo, @repo_name, callback)->
     @hstore_col = "properties"
-    @common_cols = ["createdAt", "updatedAt", "pingedAt", @hstore_col]
+    @status_cols = ["createdAt", "updatedAt", "pingedAt"]    
+    @common_cols = @status_cols.concat([@hstore_col]) 
     @Krake = @dbRepo.define 'krakes', krakeSchema
 
     gotKrakes = (krakes)=>
-      for x in [0... krakes.length]
-        current_krake = krakes[x]
+      if krakes.length == 0
+        @columns = []
+        callback && callback(false, "Sorry. The data repository you were looking for does not exist")
+
+      else
+        current_krake = krakes[0]
         curr_qh = new QueryHelper(current_krake.content)
         if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
           @columns = curr_qh.getFilteredColumns()
@@ -19,13 +24,12 @@ class KrakeModel
           @columns = curr_qh.getColumns()
 
         @columns = @columns || []
+        @status_cols.forEach (curr_col)=>
+          if curr_col not in @columns then @columns.push curr_col
 
         @url_columns = curr_qh.getUrlColumns()
         callback && callback curr_qh.is_valid
 
-      if krakes.length == 0
-        @columns = []
-        callback && callback(false, "Sorry. The data repository you were looking for does not exist")
   
     couldNotGetKrakes = (error_msg)->
       callback && callback false, error_msg
@@ -99,6 +103,9 @@ class KrakeModel
   selectClause : (query_obj)->
 
     sel_cols = query_obj.$select || @columns
+    if !@hasAggregate query_obj
+      @status_cols.forEach (curr_col)=>
+        if curr_col not in sel_cols then sel_cols.push curr_col
     
     query = sel_cols.map((column)=>
       switch typeof(column) 
@@ -137,6 +144,13 @@ class KrakeModel
     #   ).join(",")
     query = "1" if sel_cols.length == 0
     query
+
+  hasAggregate : (query_obj)->
+    return false if !query_obj.$select
+    query_obj.$select.filter((curr_col)=>
+      typeof(curr_col) == "object"
+    ).length > 0
+
 
   whereClause : (query_obj)->
     return false unless query_obj.$where && query_obj.$where.length > 0
