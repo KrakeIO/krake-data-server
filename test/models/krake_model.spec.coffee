@@ -77,29 +77,54 @@ describe "KrakeModel", ->
       expect(km.columns.length).toEqual 9
       done()
 
-  describe "colName", ->
-    it "should return correct common column name", (done)->
-      expect(@km.colName "pingedAt").toBe '"pingedAt"'
+  describe "simpleColName", ->
+    it "should return correct common column name in properly formated timestamp", (done)->
+      expect(@km.simpleColName "pingedAt").toBe "to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS')"
       done()
 
     it "should return correct common column name with auto replacement for double quote", (done)->
-      expect(@km.colName "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
+      expect(@km.simpleColName "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
       done()
 
     it "should return correct common column name with auto replacement for single quote", (done)->
-      expect(@km.colName "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
+      expect(@km.simpleColName "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
       done()
 
     it "should return correct repository column name", (done)->
-      expect(@km.colName "col1").toBe "properties::hstore->'col1'"
+      expect(@km.simpleColName "col1").toBe "properties::hstore->'col1'"
       done()
 
     it "should return correct repository column name with auto replacement for double quote", (done)->
-      expect(@km.colName "col\"1").toBe "properties::hstore->'col&#34;1'"
+      expect(@km.simpleColName "col\"1").toBe "properties::hstore->'col&#34;1'"
       done()
 
     it "should return correct repository column name with auto replacement for single quote", (done)->
-      expect(@km.colName "col'1").toBe "properties::hstore->'col&#39;1'"
+      expect(@km.simpleColName "col'1").toBe "properties::hstore->'col&#39;1'"
+      done()
+
+  describe "compoundColName", ->
+    it "should return correct common column name", (done)->
+      expect(@km.compoundColName "pingedAt").toBe '"pingedAt"'
+      done()
+
+    it "should return correct common column name with auto replacement for double quote", (done)->
+      expect(@km.compoundColName "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
+      done()
+
+    it "should return correct common column name with auto replacement for single quote", (done)->
+      expect(@km.compoundColName "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
+      done()
+
+    it "should return correct repository column name", (done)->
+      expect(@km.compoundColName "col1").toBe "properties::hstore->'col1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for double quote", (done)->
+      expect(@km.compoundColName "col\"1").toBe "properties::hstore->'col&#34;1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for single quote", (done)->
+      expect(@km.compoundColName "col'1").toBe "properties::hstore->'col&#39;1'"
       done()
 
   describe "getInsertStatement", ->
@@ -281,26 +306,28 @@ describe "KrakeModel", ->
 
     it "should return pingedAt, createdAt, UpdatedAt by default", (done)->
       select_clause = @km.selectClause { $select : [] }
-      expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'
+      expect(select_clause).toEqual 'to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\') as "createdAt",to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\') as "updatedAt",to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as "pingedAt"'
       done()
 
     it "should not return any duplicated status_col when it is already in the select clause", (done)->
       select_clause = @km.selectClause { $select : ["pingedAt"] }
-      expect(select_clause).toEqual '"pingedAt","createdAt","updatedAt"'
+      expect(select_clause).toEqual 'to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as "pingedAt",to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\') as "createdAt",to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\') as "updatedAt"'
 
       select_clause = @km.selectClause { $select : ["updatedAt"] }
-      expect(select_clause).toEqual '"updatedAt","createdAt","pingedAt"'
+      expect(select_clause).toEqual 'to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\') as "updatedAt",to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\') as "createdAt",to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as "pingedAt"' 
 
       select_clause = @km.selectClause { $select : ["createdAt"] }
-      expect(select_clause).toEqual '"createdAt","updatedAt","pingedAt"'      
+      expect(select_clause).toEqual 'to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\') as "createdAt",to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\') as "updatedAt",to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as "pingedAt"'
       done()
 
     it "should return the properly formatted repository columns", (done)->
       select_clause = @km.selectClause { $select : ["col1", "col2"] }
 
-      expected_query =  "properties::hstore->'col1' as \"col1\"" +
-                        ",properties::hstore->'col2' as \"col2\"" +
-                        ',"createdAt","updatedAt","pingedAt"'
+      expected_query =  "properties::hstore->'col1' as \"col1\"," +
+                        "properties::hstore->'col2' as \"col2\"," +
+                        "to_char(\"createdAt\", 'YYYY-MM-DD HH24:MI:SS') as \"createdAt\"," +
+                        "to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as \"updatedAt\"," +
+                        "to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as \"pingedAt\""
       expect(select_clause).toEqual expected_query
       done()
 
@@ -312,8 +339,10 @@ describe "KrakeModel", ->
                         'properties::hstore->\'categories\' as "categories",' +
                         'properties::hstore->\'therapeutic indication\' as "therapeutic indication",' +
                         'properties::hstore->\'origin_url\' as "origin_url",' +
-                        'properties::hstore->\'origin_pattern\' as "origin_pattern"' +
-                        ',"createdAt","updatedAt","pingedAt"'
+                        'properties::hstore->\'origin_pattern\' as "origin_pattern",' +
+                        "to_char(\"createdAt\", 'YYYY-MM-DD HH24:MI:SS') as \"createdAt\"," +
+                        "to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as \"updatedAt\"," +
+                        "to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as \"pingedAt\""
       expect(select_clause).toEqual expected_query
       done()
 
