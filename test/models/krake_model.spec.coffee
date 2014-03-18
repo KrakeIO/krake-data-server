@@ -2,7 +2,8 @@ fs = require 'fs'
 kson = require 'kson'
 Sequelize = require 'sequelize'
 ktk = require 'krake-toolkit'
-krakeSchema = ktk.schema.krake
+recordBody = require('krake-toolkit').schema.record
+krakeSchema = require('krake-toolkit').schema.krake
 
 CONFIG = null
 ENV = "test"
@@ -27,7 +28,6 @@ password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
 dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 
-recordBody = require '../../schema/record'
 KrakeModel = require '../../models/krake_model'
 krake_definition = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
 

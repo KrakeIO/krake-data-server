@@ -7,8 +7,8 @@ fs = require 'fs'
 kson = require 'kson'
 path = require 'path'
 Hstore = require 'pg-hstore' #https://github.com/scarney81/pg-hstore
-ktk = require 'krake-toolkit'
 Sequelize = require 'sequelize'
+recordBody = require('krake-toolkit').schema.record
 CacheController = require './controllers/cache_controller'
 KrakeModel = require './models/krake_model'
 
@@ -35,10 +35,9 @@ password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
 dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
 dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
-krakeSchema = ktk.schema.krake
+krakeSchema = require('krake-toolkit').schema.krake
 Krake = dbSystem.define 'krakes', krakeSchema
 
-recordBody = ktk.schema.record
 cm = new CacheController CONFIG.cachePath, dbRepo, recordBody
 
 # Web Server section of system
