@@ -38,7 +38,7 @@ dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 krakeSchema = ktk.schema.krake
 Krake = dbSystem.define 'krakes', krakeSchema
 
-recordBody = require './schema/record'
+recordBody = ktk.schema.record
 cm = new CacheController CONFIG.cachePath, dbRepo, recordBody
 
 # Web Server section of system
