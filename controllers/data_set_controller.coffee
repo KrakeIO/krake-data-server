@@ -42,6 +42,41 @@ class DataSetController
       else if batches.length == 0
         callback && callback()
 
+  copyMostRecent2Batches : (repo_name, callback)->
+    @getRepoBatches repo_name, (batches)=>
+      if !batches || batches.length == 0
+        callback && callback()
+
+      query = ""
+      if batches.length >= 1
+        query += 'INSERT INTO "' + @set_name + '" ("properties", "datasource_handle", "pingedAt", "createdAt", "updatedAt") ' +
+          '  SELECT ' +
+          '    "properties",' +
+          '    \'' + repo_name + '\' as "datasource_handle",' +
+          '    \'' + batches[0] + '\' as "pingedAt",' +
+          '    \'' + batches[0] + '\' as "createdAt",' +
+          '    \'' + batches[0] + '\' as "updatedAt"' +
+          '  FROM "' + repo_name + '" ' +
+          '  WHERE ' +
+          '   "pingedAt" = \'' + batches[0] + '\' ;'
+          "\n\n"
+
+      if batches.length >= 2
+        query += 'INSERT INTO "' + @set_name + '" ("properties", "datasource_handle", "pingedAt", "createdAt", "updatedAt") ' +
+          '  SELECT ' +
+          '    "properties",' +
+          '    \'' + repo_name + '\' as "datasource_handle",' +
+          '    \'' + batches[1] + '\' as "pingedAt",' +
+          '    \'' + batches[1] + '\' as "createdAt",' +
+          '    \'' + batches[1] + '\' as "updatedAt"' +
+          '  FROM "' + repo_name + '" ' +
+          '  WHERE ' +
+          '   "pingedAt" = \'' + batches[1] + '\';'
+
+      @dbRepo.query(query).success ()->
+        callback && callback()
+
+
 
 
 module.exports = DataSetController

@@ -39,7 +39,6 @@ describe "DataSetController", ->
     @set_name = "1_data_set_111111111111es"
     @repo1_name = "1_data_source_1111111es"
     @Krake = @dbSystem.define 'krakes', krakeSchema
-    @test_cols = ["drug bank", "drug name"]
 
     # Force reset dataSchema table in test database
     promise1 = @Krake.sync({force: true})
@@ -55,7 +54,7 @@ describe "DataSetController", ->
         @RecordSets.sync({force: true}).success ()=>        
 
           @km = new KrakeModel @dbSystem, @repo1_name, ()=>
-            @ksm = new KrakeSetModel @dbSystem, @set_name, @test_cols, ()=>
+            @ksm = new KrakeSetModel @dbSystem, @set_name, @km.columns, ()=>
               @dsc = new DataSetController @dbSystem, @dbRepo, @set_name, ()=>
               done()
 
@@ -173,4 +172,82 @@ describe "DataSetController", ->
           @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
             expect(records.length).toEqual 1
             expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
+            done()
+
+  describe "clearMostRecent2Batches", ->
+
+    it "should copy the two most recent batch of records over", (done)->
+      d1 = 
+        "drug bank"         : "drug day 1 funky"
+        "drug name"         : "drug name day 1"
+        "pingedAt"          : "2015-03-22 00:00:00"
+        "createdAt"         : "2015-03-22 00:00:00"
+        "updatedAt"         : "2015-03-22 00:00:00"
+
+      d2 = 
+        "drug bank"         : "drug day 2 funky"
+        "drug name"         : "drug name day 2"
+        "pingedAt"          : "2015-03-23 00:00:00"
+        "createdAt"         : "2015-03-23 00:00:00"
+        "updatedAt"         : "2015-03-23 00:00:00"
+
+      d3 = 
+        "drug bank"         : "drug day 3 funky"
+        "drug name"         : "drug name day 3"
+        "pingedAt"          : "2015-03-24 00:00:00"
+        "createdAt"         : "2015-03-24 00:00:00"
+        "updatedAt"         : "2015-03-24 00:00:00"
+
+      insert_query1 = @km.getInsertStatement(d1)
+      insert_query2 = @km.getInsertStatement(d2)
+      insert_query3 = @km.getInsertStatement(d3)
+
+      promise1 = @dbRepo.query insert_query1
+      promise2 = promise1.then ()=>
+        @dbRepo.query insert_query2
+
+      promise3 = promise2.then ()=>
+        @dbRepo.query insert_query3
+
+      promise3.then ()=>
+        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          expect(records.length).toEqual 0
+          @dsc.copyMostRecent2Batches @repo1_name, ()=>
+            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+              expect(records.length).toEqual 2
+              expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
+              expect(records[0]["drug bank"]).toEqual "drug day 3 funky"
+              expect(records[1].pingedAt).toEqual "2015-03-23 00:00:00"
+              expect(records[1]["drug bank"]).toEqual "drug day 2 funky"
+              done()
+
+    it "should copy the recent batch of record over", (done)->
+      d1 = 
+        "drug bank"         : "drug day 1 funky"
+        "drug name"         : "drug name day 1"
+        "pingedAt"          : "2015-03-22 00:00:00"
+        "createdAt"         : "2015-03-22 00:00:00"
+        "updatedAt"         : "2015-03-22 00:00:00"
+
+
+      insert_query1 = @km.getInsertStatement(d1)
+
+      promise1 = @dbRepo.query insert_query1
+      promise1.then ()=>
+
+        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          expect(records.length).toEqual 0
+          @dsc.copyMostRecent2Batches @repo1_name, ()=>
+            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+              expect(records.length).toEqual 1
+              expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
+              expect(records[0]["drug bank"]).toEqual "drug day 1 funky"
+              done()
+
+    it "should not crash when there are not records", (done)->
+      @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+        expect(records.length).toEqual 0
+        @dsc.copyMostRecent2Batches @repo1_name, ()=>
+          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+            expect(records.length).toEqual 0
             done()
