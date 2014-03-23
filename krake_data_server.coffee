@@ -9,7 +9,9 @@ path = require 'path'
 Hstore = require 'pg-hstore' #https://github.com/scarney81/pg-hstore
 Sequelize = require 'sequelize'
 recordBody = require('krake-toolkit').schema.record
+recordSetBody = require('krake-toolkit').schema.record_set
 CacheController = require './controllers/cache_controller'
+DataSetController = require './controllers/data_set_controller'
 KrakeModel = require './models/krake_model'
 
 CONFIG = null
@@ -77,6 +79,13 @@ app.get '/:data_repository/:format', (req, res)=>
         res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
       fs.createReadStream(path_to_cache).pipe res
 
+# @Description : Copies records from the current 
+app.get '/consolidate/:data_repository/:dataset_repository', (req, res)=>
+  @dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
+  @dsc.clearMostRecent2Batches req.params.data_repository, ()=>
+    @dsc.copyMostRecent2Batches req.params.data_repository, ()=>
+      res.send {status: "success", message: "consolidated" }
+
 module.exports = 
   app : app
   dbRepo : dbRepo
@@ -84,6 +93,7 @@ module.exports =
   krakeSchema : krakeSchema
   Krake :  Krake
   recordBody : recordBody
+  recordSetBody : recordSetBody
   CacheController : CacheController
 
 if !module.parent

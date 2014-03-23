@@ -4,7 +4,7 @@ exec = require('child_process').exec
 fs = require 'fs'
 kson = require 'kson'
 
-class CacheManager
+class CacheController
   constructor: (@cachePath, @dbRepo, @modelBody)->
     @csvDelimiter = "  DELIMITER ';' "
     @createCacheFolder()
@@ -130,4 +130,4 @@ class CacheManager
     callback && callback()
   
 
-module.exports = CacheManager
+module.exports = CacheController

@@ -2,40 +2,22 @@ ktk = require 'krake-toolkit'
 krakeSchema = ktk.schema.krake
 QueryHelper = ktk.query.helper
 
-class KrakeModel
+class KrakeSetModel
   
-  constructor : (@dbSystem, @repo_name, callback)->
+  constructor : (@dbSystem, @set_name, @columns, callback)->
     @hstore_col = "properties"
+    @handle_col = "datasource_handle"
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
-    @common_cols = @status_cols.concat([@hstore_col]) 
+    @common_cols = @status_cols.concat([@hstore_col]).concat([@handle_col])
     @Krake = @dbSystem.define 'krakes', krakeSchema
+    @columns = @columns || []
 
-    gotKrakes = (krakes)=>
-      if krakes.length == 0
-        @columns = []
-        callback && callback(false, "Sorry. The data repository you were looking for does not exist")
+    @status_cols.forEach (curr_col)=>
+      if curr_col not in @columns then @columns.push curr_col
 
-      else
-        current_krake = krakes[0]
-        curr_qh = new QueryHelper(current_krake.content)
-        if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
-          @columns = curr_qh.getFilteredColumns()
-        else if curr_qh.getColumns() && curr_qh.getColumns().length > 0
-          @columns = curr_qh.getColumns()
-
-        @columns = @columns || []
-        @status_cols.forEach (curr_col)=>
-          if curr_col not in @columns then @columns.push curr_col
-
-        @url_columns = curr_qh.getUrlColumns()
-        callback && callback curr_qh.is_valid
-
-  
-    couldNotGetKrakes = (error_msg)->
-      callback && callback false, error_msg
-
-    # Ensures only 1 Krake definition is retrieved given a krake handle
-    @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).success(gotKrakes).error(couldNotGetKrakes)
+    if @handle_col not in @columns then @columns.push @handle_col
+    
+    callback && callback true
   
 
   getInsertStatement : (data_obj)->
@@ -51,6 +33,10 @@ class KrakeModel
             @getFormattedDate data_obj[column]
           else 
             @getFormattedDate new Date()
+
+        when @handle_col
+          data_obj[column] || ""
+
         when @hstore_col
           @getHstoreValues data_obj
 
@@ -58,7 +44,7 @@ class KrakeModel
       "'" + column + "'"
     ).join(",")
 
-    query_string =  'INSERT INTO "' + @repo_name + '"' +
+    query_string =  'INSERT INTO "' + @set_name + '"' +
                     ' (' + insert_keys_string + ')' +
                     ' VALUES ' +
                     ' (' + insert_value_string + ')'
@@ -80,7 +66,7 @@ class KrakeModel
 
   getSelectStatement : (query_obj)->
     query_string =  'SELECT ' + @selectClause(query_obj) + 
-                    ' FROM "' + @repo_name + '" ' + 
+                    ' FROM "' + @set_name + '" ' + 
                     ' WHERE ' + (@whereClause(query_obj) || 'true')
 
     
@@ -97,8 +83,12 @@ class KrakeModel
 
   simpleColName: (column)->
     column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
-    if column in @common_cols 
+    if column in @common_cols && column != @handle_col
       @timeStampColName column
+
+    else if column == @handle_col
+      column
+      
     else 
       @hstoreColName column
 
@@ -223,4 +213,4 @@ class KrakeModel
         when "$desc" then @compoundColName(column[operator]) + " desc" 
     ).join(",")
 
-module.exports = KrakeModel
+module.exports = KrakeSetModel
