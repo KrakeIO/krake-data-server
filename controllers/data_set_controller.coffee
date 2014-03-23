@@ -2,9 +2,15 @@ ktk           = require 'krake-toolkit'
 DataSetSchema = ktk.schema.record_set
 KrakeModel    = require '../models/krake_model'
 KrakeSetModel    = require '../models/krake_set_model'
+recordSetBody = require('krake-toolkit').schema.record_set
 
 class DataSetController
   constructor : (@dbSystem, @dbRepo, @set_name, callback)->  
+    model = @dbRepo.define @set_name, recordSetBody
+    model.sync().success ()=>
+      callback && callback()
+    .error ()=>
+      callback && callback()
 
   getRepoBatches : (repo_name, callback)->
     @km = new KrakeModel @dbSystem, repo_name, (status, error_message)=>
@@ -18,6 +24,11 @@ class DataSetController
           record_obj.pingedAt
 
         callback && callback records
+
+  consolidate2Batches : (repo_name, callback)->
+    @clearMostRecent2Batches repo_name, ()=>
+      @copyMostRecent2Batches repo_name, ()=>
+        callback && callback()
 
   clearMostRecent2Batches : (repo_name, callback)->
 
