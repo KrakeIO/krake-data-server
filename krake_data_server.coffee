@@ -81,9 +81,8 @@ app.get '/:data_repository/:format', (req, res)=>
 
 # @Description : Copies records from the current 
 app.get '/consolidate/:data_repository/:dataset_repository', (req, res)=>
-  @dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
-  @dsc.clearMostRecent2Batches req.params.data_repository, ()=>
-    @dsc.copyMostRecent2Batches req.params.data_repository, ()=>
+  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
+    dsc.consolidate2Batches req.params.data_repository, ()=>
       res.send {status: "success", message: "consolidated" }
 
 module.exports = 
