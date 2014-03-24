@@ -18,8 +18,10 @@ class KrakeModel
       else
         current_krake = krakes[0]
         curr_qh = new QueryHelper(current_krake.content)
+        
         if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
           @columns = curr_qh.getFilteredColumns()
+
         else if curr_qh.getColumns() && curr_qh.getColumns().length > 0
           @columns = curr_qh.getColumns()
 

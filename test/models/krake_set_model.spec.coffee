@@ -1,9 +1,12 @@
-fs = require 'fs'
-kson = require 'kson'
-Sequelize = require 'sequelize'
-ktk = require 'krake-toolkit'
-recordSetBody = require('krake-toolkit').schema.record_set
-krakeSchema = require('krake-toolkit').schema.krake
+fs                      = require 'fs'
+kson                    = require 'kson'
+Sequelize               = require 'sequelize'
+schemaConfig            = require('krake-toolkit').schema.config 
+recordSetBody           = require('krake-toolkit').schema.record_set
+krakeSchema             = require('krake-toolkit').schema.krake
+dataSetSchema           = require('krake-toolkit').schema.data_set
+dataSetKrakeSchema      = require('krake-toolkit').schema.data_set_krake
+dataSetKrakeRuleSchema  = require('krake-toolkit').schema.data_set_krake_rule
 
 CONFIG = null
 ENV = "test"
@@ -13,53 +16,73 @@ catch error
   console.log 'cannot parse config.js, %s', error
   process.exit(1)
   
-options = {}
-options.host = process.env['KRAKE_PG_HOST'] || CONFIG.postgres.host
-options.port = CONFIG.postgres.port
-options.dialect = 'postgres'
-options.logging = false
-pool = {}
+options             = {}
+options.host        = process.env['KRAKE_PG_HOST'] || CONFIG.postgres.host
+options.port        = CONFIG.postgres.port
+options.dialect     = 'postgres'
+options.logging     = false
+pool                = {}
 pool.maxConnections = 5
-pool.maxIdleTime = 30
-options.pool = pool
-userName = process.env['KRAKE_PG_USERNAME'] || CONFIG.postgres.username
-password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
+pool.maxIdleTime    = 30
+options.pool        = pool
+userName            = process.env['KRAKE_PG_USERNAME'] || CONFIG.postgres.username
+password            = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
-dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
-dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
+dbRepo    = new Sequelize CONFIG.postgres.database, userName, password, options
+dbSystem  = new Sequelize CONFIG.userDataDB, userName, password, options
 
-KrakeSetModel = require '../../models/krake_set_model'
-krake_definition = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
+KrakeSetModel     = require '../../models/krake_set_model'
+krake_definition  = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
 
 describe "KrakeSetModel", ->
 
   beforeEach (done)->
-    @dbRepo = dbRepo
-    @dbSystem = dbSystem
-    @repo_name = "krake_sets_tests"
-    @Krake = dbSystem.define 'krakes', krakeSchema
+    @dbRepo     = dbRepo
+    @dbSystem   = dbSystem
+    @repo_name  = "krake_source_tests"
+    @set_name   = "krake_sets_tests"
+
+    @RecordSets    = dbRepo.define @set_name, recordSetBody
+
+    @Krake            = @dbSystem.define 'krakes', krakeSchema, schemaConfig
+    @DataSet          = @dbSystem.define 'data_sets', dataSetSchema, schemaConfig
+    @DataSetKrake     = @dbSystem.define 'data_set_krakes', dataSetKrakeSchema, schemaConfig
+    @DataSetKrakeRule = @dbSystem.define 'data_set_krake_rules', dataSetKrakeRuleSchema, schemaConfig
+
+    @DataSet.hasMany @Krake, { as: "krakes", through: @DataSetKrake}
+    @Krake.hasMany @DataSet, { as: "data_sets", through: @DataSetKrake}
+
+    @DataSetKrakeRule.belongsTo @DataSetKrake
+    @DataSetKrake.hasMany @DataSetKrakeRule, { as: "data_set_krake_rule", foreignKey: 'data_set_krake_id'}
+
+    promise0 = @dbSystem.sync()
 
     # Force reset dataSchema table in test database
-    promise1 = @Krake.sync({force: true})
+    promise1 = promise0.then ()=>
+      @Krake.sync({force: true})
+
     promise2 = promise1.then ()=>
-      @Krake.create({ content: krake_definition, handle: @repo_name})
+      @DataSet.sync({force: true})
 
     promise3 = promise2.then ()=>
+      @DataSetKrake.sync({force: true})
+
+    promise4 = promise3.then ()=>
       # Force reset dataRepository table in test database
-      @RecordSets = dbRepo.define @repo_name, recordSetBody  
       @RecordSets.sync({force: true}).success ()=>
 
-        # instantiates a krake model
-        @ksm = new KrakeSetModel dbSystem, @repo_name, [], ()->
-          done()
+    promise5 = promise4.then ()=>
+      @Krake.create({ content: krake_definition, handle: @repo_name})
 
-  it "should not crash when krake content is invalid", (done)->
-    promise1 = @Krake.create({ content: "", handle: @repo_name})
-    promise1.then =>
-      ksm = new KrakeSetModel @dbSystem, @repo_name, null, (is_valid)->
-        expect(is_valid).toBe true      
+    promise6 = promise5.then (@krake_obj)=>
+      @DataSet.create({ handle: @set_name, name: @set_name })
+
+    promise7 = promise6.then (@dataset_obj)=>
+      @dataset_obj.setKrakes [@krake_obj]
+
+    promise8 = promise7.then ()=>
+      @ksm = new KrakeSetModel dbSystem, @set_name, [], ()=>
         done()
-
 
   describe "simpleColName", ->
     it "should return correct common column name in properly formated timestamp", (done)->
@@ -285,7 +308,17 @@ describe "KrakeSetModel", ->
 
     it "should return pingedAt, createdAt, updatedAt, datasource_handle by default when there is no select clause ", (done)->
       select_clause = @ksm.selectClause {  }
-      checksum =  'to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\') as "createdAt",to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\') as "updatedAt",to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as "pingedAt",datasource_handle as "datasource_handle"'
+      
+      checksum = 'properties::hstore->\'drug bank\' as "drug bank",'+
+        'properties::hstore->\'drug name\' as "drug name",'+
+        'properties::hstore->\'categories\' as "categories",'+
+        'properties::hstore->\'therapeutic indication\' as "therapeutic indication",'+
+        'properties::hstore->\'origin_url\' as "origin_url",properties::hstore->\'origin_pattern\' as "origin_pattern",'+
+        'to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\') as "createdAt",'+
+        'to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\') as "updatedAt",'+
+        'to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as "pingedAt",'+
+        'datasource_handle as "datasource_handle"'
+
       expect(select_clause).toEqual checksum
       done()
 
