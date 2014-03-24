@@ -34,7 +34,7 @@ KrakeModel = require '../../models/krake_model'
 fixture = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
 
 
-describe "CacheController", ->
+describe "CacheController with KrakeModel", ->
   beforeEach (done) ->
     @dbRepo = dbRepo
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
