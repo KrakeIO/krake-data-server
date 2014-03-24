@@ -1,23 +1,90 @@
-ktk = require 'krake-toolkit'
-krakeSchema = ktk.schema.krake
-QueryHelper = ktk.query.helper
+schemaConfig            = require('krake-toolkit').schema.config 
+QueryHelper             = require('krake-toolkit').query.helper
+krakeSchema             = require('krake-toolkit').schema.krake
+dataSetSchema           = require('krake-toolkit').schema.data_set
+dataSetKrakeSchema      = require('krake-toolkit').schema.data_set_krake
+dataSetKrakeRuleSchema  = require('krake-toolkit').schema.data_set_krake_rule
 
 class KrakeSetModel
   
   constructor : (@dbSystem, @set_name, @columns, callback)->
+    @krakes = []
     @hstore_col = "properties"
     @handle_col = "datasource_handle"
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
     @common_cols = @status_cols.concat([@hstore_col]).concat([@handle_col])
-    @Krake = @dbSystem.define 'krakes', krakeSchema
+
+    @sync ()=>    
+      @columns = @columns || []
+
+      @status_cols.forEach (curr_col)=>
+        if curr_col not in @columns then @columns.push curr_col
+
+      if @handle_col not in @columns then @columns.push @handle_col
+      
+      callback && callback true
+
+  sync : (callback)->
+    @Krake            = @dbSystem.define 'krakes', krakeSchema, schemaConfig
+    @DataSet          = @dbSystem.define 'data_sets', dataSetSchema, schemaConfig
+    @DataSetKrake     = @dbSystem.define 'data_set_krakes', dataSetKrakeSchema, schemaConfig
+    @DataSetKrakeRule = @dbSystem.define 'data_set_krake_rules', dataSetKrakeRuleSchema, schemaConfig
+
+    @DataSet.hasMany @Krake, { through: @DataSetKrake}
+    @Krake.hasMany @DataSet, { through: @DataSetKrake}
+
+    @DataSetKrakeRule.belongsTo @DataSetKrake
+    @DataSetKrake.hasMany @DataSetKrakeRule, { as: "data_set_krake_rule", foreignKey: 'data_set_krake_id'}
+
+    @dbSystem.sync().done ()=>
+      @loadKrakes(callback)
+
+  loadKrakes : (callback)->
+    query =
+      where: 
+        handle: @set_name
+      include: [@Krake]
+      limit: 1
+
+    @DataSet
+      .findAll(query)
+      .success (@dataset_objs)=>
+        if @dataset_objs.length == 0
+          callback && callback()
+        else
+          @dataset_obj = @dataset_objs[0]
+          @krakes = @dataset_objs[0].krakes
+          @setFullColumns()
+          callback && callback @krakes
+
+      .error (error)=>
+        callback && callback()
+
+  setFullColumns : ()->
     @columns = @columns || []
+    @url_columns = @url_columns || []      
+
+    if @krakes.length > 0
+      for current_krake in @krakes
+        curr_qh = new QueryHelper(current_krake.content)
+
+        if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
+          for curr_col in curr_qh.getFilteredColumns()
+            if curr_col not in @columns then @columns.push curr_col  
+
+        else if curr_qh.getColumns() && curr_qh.getColumns().length > 0
+          for curr_col in curr_qh.getColumns()
+            if curr_col not in @columns then @columns.push curr_col            
+
+        if curr_qh.getUrlColumns() && curr_qh.getUrlColumns() > 0
+          for curr_col in curr_qh.getUrlColumns()
+            if curr_col not in @url_columns then @url_columns.push curr_col
 
     @status_cols.forEach (curr_col)=>
       if curr_col not in @columns then @columns.push curr_col
 
-    if @handle_col not in @columns then @columns.push @handle_col
-    
-    callback && callback true
+        
+ 
   
 
   getInsertStatement : (data_obj)->

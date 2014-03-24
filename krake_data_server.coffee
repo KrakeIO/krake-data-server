@@ -13,6 +13,7 @@ recordSetBody = require('krake-toolkit').schema.record_set
 CacheController = require './controllers/cache_controller'
 DataSetController = require './controllers/data_set_controller'
 KrakeModel = require './models/krake_model'
+KrakeSetModel = require './models/krake_set_model'
 
 CONFIG = null
 ENV = (process.env['NODE_ENV'] || 'development').toLowerCase()
@@ -84,6 +85,16 @@ app.get '/consolidate/:data_repository/:dataset_repository', (req, res)=>
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.consolidate2Batches req.params.data_repository, ()=>
       res.send {status: "success", message: "consolidated" }
+
+# @Description : Returns an array of JSON/CSV results based on query parameters
+app.get '/data_set/:dataset_repository/:format', (req, res)=>
+  dataset_repository = req.params.dataset_repository
+  ksm = new KrakeSetModel dbSystem, dataset_repository, null, (status, error_message)=>
+    query_obj = req.query.q && JSON.parse(req.query.q) || {}
+    cm.getCache dataset_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
+      if req.params.format == 'csv'
+        res.header 'Content-Disposition', 'attachment;filename=' + req.params.dataset_repository + '.csv'
+      fs.createReadStream(path_to_cache).pipe res
 
 module.exports = 
   app : app

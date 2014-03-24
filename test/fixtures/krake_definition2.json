@@ -1,0 +1,26 @@
+{
+  "origin_url": "http://www.drugbank.ca/drugs",
+  "columns": [
+    {
+      "col_name": "drug user name",
+      "xpath": "/html[1]/body[1]/div/div[1]/div[3]/div[1]/div[2]/table[1]/tbody[1]/tr/td[1]/a[1]"
+    },
+    {
+      "col_name": "drug name",
+      "xpath": "/html[1]/body[1]/div/div[1]/div[3]/div[1]/div[2]/table[1]/tbody[1]/tr/td[2]/strong[1]/a[1]"
+    },
+    {
+      "col_name": "categories",
+      "xpath": "/html[1]/body[1]/div/div[1]/div[3]/div[1]/div[2]/table[1]/tbody[1]/tr/td[5]"
+    },
+    {
+      "col_name": "therapeutic indication",
+      "xpath": "/html[1]/body[1]/div/div[1]/div[3]/div[1]/div[2]/table[1]/tbody[1]/tr/td[6]"
+    }
+  ],
+  "wait": 811,
+  "next_page": {
+    "dom_query": "div#index-action div.pagination-holder nav.pagination span.next a:contains(\"Next ›\")",
+    "click": true
+  }
+}
