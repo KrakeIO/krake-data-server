@@ -1,7 +1,5 @@
-ktk           = require 'krake-toolkit'
-DataSetSchema = ktk.schema.record_set
 KrakeModel    = require '../models/krake_model'
-KrakeSetModel    = require '../models/krake_set_model'
+KrakeSetModel = require '../models/krake_set_model'
 recordSetBody = require('krake-toolkit').schema.record_set
 
 class DataSetController
@@ -25,27 +23,37 @@ class DataSetController
 
         callback && callback records
 
-  consolidate2Batches : (repo_name, callback)->
-    @clearMostRecent2Batches repo_name, ()=>
-      @copyMostRecent2Batches repo_name, ()=>
+  # @Description: synchronizes the records from data source over to dataset
+  #
+  # @param: repo_name:String
+  #   the name of the repository to port the data from
+  #
+  # @param: num_of_batches:Integers
+  #   the number of batches to port over starting from most recent to earliest in reverse chronological order
+  #   if null, then ports all batches over
+  #
+  # @param: callback:function
+  #   the function that gets called when the synchronization operations completes
+  consolidateBatches : (repo_name, num_of_batches, callback)->
+    @clearBatches repo_name,  num_of_batches, ()=>
+      @copyBatches repo_name,  num_of_batches, ()=>
         callback && callback()
 
-  clearMostRecent2Batches : (repo_name, callback)->
-
+  clearBatches : (repo_name, num_of_batches, callback)->
     @getRepoBatches repo_name, (batches)=>
       if !batches 
         callback && callback()
 
       else if batches.length > 0
-        batches_to_clear = batches.slice(0,2)
-        batch_and_clause = batches_to_clear.map((batch)->
-          "\"pingedAt\"='" + batch + "'"          
-        ).join(" or ")
-
         del_query = 'delete from  "'+ @set_name + '"' +
           " where " +
-          "\"datasource_handle\"='" + repo_name + "' and " +
-          "(" + batch_and_clause + ")"
+          "\"datasource_handle\"='" + repo_name + "'"
+
+        if num_of_batches && num_of_batches > 0
+          batch_and_clause = batches.slice(0,num_of_batches).map((batch)->
+            "\"pingedAt\"='" + batch + "'"          
+          ).join(" or ")
+          del_query += " and (" + batch_and_clause + ")"
 
         @dbRepo.query(del_query).success ()->
           callback && callback()
@@ -53,39 +61,33 @@ class DataSetController
       else if batches.length == 0
         callback && callback()
 
-  copyMostRecent2Batches : (repo_name, callback)->
+  copyBatches : (repo_name, num_of_batches, callback)->
     @getRepoBatches repo_name, (batches)=>
       if !batches || batches.length == 0
         callback && callback()
 
-      query = ""
-      if batches.length >= 1
-        query += 'INSERT INTO "' + @set_name + '" ("properties", "datasource_handle", "pingedAt", "createdAt", "updatedAt") ' +
+      if batches.length > 0
+        if num_of_batches && num_of_batches > 0
+          batches_to_copy = batches.slice(0,num_of_batches)
+        else
+          batches_to_copy = batches
+
+        query = batches_to_copy.map((batch)=>
+          'INSERT INTO "' + @set_name + '" ("properties", "datasource_handle", "pingedAt", "createdAt", "updatedAt") ' +
           '  SELECT ' +
           '    "properties",' +
           '    \'' + repo_name + '\' as "datasource_handle",' +
-          '    \'' + batches[0] + '\' as "pingedAt",' +
-          '    \'' + batches[0] + '\' as "createdAt",' +
-          '    \'' + batches[0] + '\' as "updatedAt"' +
+          '    \'' + batch + '\' as "pingedAt",' +
+          '    \'' + batch + '\' as "createdAt",' +
+          '    \'' + batch + '\' as "updatedAt"' +
           '  FROM "' + repo_name + '" ' +
           '  WHERE ' +
-          '   "pingedAt" = \'' + batches[0] + '\' ;'
-          "\n\n"
+          '   "pingedAt" = \'' + batch + '\' ;'
 
-      if batches.length >= 2
-        query += 'INSERT INTO "' + @set_name + '" ("properties", "datasource_handle", "pingedAt", "createdAt", "updatedAt") ' +
-          '  SELECT ' +
-          '    "properties",' +
-          '    \'' + repo_name + '\' as "datasource_handle",' +
-          '    \'' + batches[1] + '\' as "pingedAt",' +
-          '    \'' + batches[1] + '\' as "createdAt",' +
-          '    \'' + batches[1] + '\' as "updatedAt"' +
-          '  FROM "' + repo_name + '" ' +
-          '  WHERE ' +
-          '   "pingedAt" = \'' + batches[1] + '\';'
+        ).join("\n\n")
 
-      @dbRepo.query(query).success ()->
-        callback && callback()
+        @dbRepo.query(query).success ()->
+          callback && callback()
 
 
 

@@ -80,11 +80,23 @@ app.get '/:data_repository/:format', (req, res)=>
         res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
       fs.createReadStream(path_to_cache).pipe res
 
-# @Description : Copies records from the current 
-app.get '/consolidate/:data_repository/:dataset_repository', (req, res)=>
+# @Description : Copies all records from data_repository over to dataset_repository
+app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
-    dsc.consolidate2Batches req.params.data_repository, ()=>
-      res.send {status: "success", message: "consolidated" }
+    dsc.consolidateBatches req.params.data_repository, null, ()=>
+      res.send {status: "success", message: "connected" }
+
+# @Description : Updates the records from data_repository over to dataset_repository
+app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
+  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
+    dsc.consolidateBatches req.params.data_repository, 2, ()=>
+      res.send {status: "success", message: "synchronized" }
+
+# @Description : Removes all records belonging to data_repository from dataset_repository
+app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
+  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
+    dsc.clearBatches req.params.data_repository, null, ()=>
+      res.send {status: "success", message: "disconnected" }
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/data_set/:dataset_repository/:format', (req, res)=>
