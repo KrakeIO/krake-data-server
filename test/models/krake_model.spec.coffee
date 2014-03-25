@@ -38,20 +38,19 @@ describe "KrakeModel", ->
     @dbSystem = dbSystem
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
     @Krake = dbSystem.define 'krakes', krakeSchema
+    @Records = dbRepo.define @repo_name, recordBody     
 
     # Force reset dataSchema table in test database
-    promise1 = @Krake.sync({force: true})
-    promise2 = promise1.then ()=>
-      @Krake.create({ content: krake_definition, handle: @repo_name})
-
-    promise3 = promise2.then ()=>
-      # Force reset dataRepository table in test database
-      @Records = dbRepo.define @repo_name, recordBody  
-      @Records.sync({force: true}).success ()=>
-
-        # instantiates a krake model
-        @km = new KrakeModel dbSystem, @repo_name, ()->
-          done()
+    chainer = new Sequelize.Utils.QueryChainer()
+    chainer
+      .add(@Krake.sync({force: true}))
+      .add(@Records.sync({force: true}))
+      .run()
+      .success ()=>
+        @Krake.create({ content: krake_definition, handle: @repo_name}).success ()=>
+          # instantiates a krake model
+          @km = new KrakeModel dbSystem, @repo_name, ()->
+            done()
 
   it "should not crash when krake content is invalid", (done)->
     promise1 = @Krake.create({ content: "", handle: @repo_name})
@@ -829,11 +828,12 @@ describe "KrakeModel", ->
         "drug bank" : "what to do"
         "pingedAt" : new Date()
         "pingedAt" : new Date()
-      insert_query = @km.getInsertStatement(data_obj)
-      promise1 = @dbRepo.query(insert_query)
-      promise2 = promise1.then @dbRepo.query(insert_query)
-      promise3 = promise2.then @dbRepo.query(insert_query)
-      promise3.then ()=>
+      queries = []
+      queries.push @km.getInsertStatement(data_obj)
+      queries.push @km.getInsertStatement(data_obj)
+      queries.push @km.getInsertStatement(data_obj)
+
+      @dbRepo.query(queries.join(";")).then ()=>
         query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1 }
         @dbRepo.query(query_string).success (records)->
           expect(records.length).toEqual 1
@@ -862,15 +862,13 @@ describe "KrakeModel", ->
       data_obj3 = 
         "drug bank" : "what to do again and again"
 
-      insert_query1 = @km.getInsertStatement(data_obj1)
-      insert_query2 = @km.getInsertStatement(data_obj2)
-      insert_query3 = @km.getInsertStatement(data_obj3)
+      queries = []
+      queries.push @km.getInsertStatement(data_obj1)
+      queries.push @km.getInsertStatement(data_obj2)
+      queries.push @km.getInsertStatement(data_obj3)
+      queries.push @km.getInsertStatement(data_obj1)
 
-      promise1 = @dbRepo.query(insert_query1)
-      promise2 = promise1.then @dbRepo.query(insert_query2)
-      promise3 = promise2.then @dbRepo.query(insert_query3)
-      promise4 = promise3.then @dbRepo.query(insert_query1)
-      promise4.then ()=>
+      @dbRepo.query(queries.join(";")).then ()=>
         query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 0 }
         @dbRepo.query(query_string).success (records)->
           expect(records.length).toEqual 1
@@ -886,15 +884,12 @@ describe "KrakeModel", ->
       data_obj3 = 
         "drug bank" : "what to do again and again"
 
-      insert_query1 = @km.getInsertStatement(data_obj1)
-      insert_query2 = @km.getInsertStatement(data_obj2)
-      insert_query3 = @km.getInsertStatement(data_obj3)
-
-      promise1 = @dbRepo.query(insert_query1)
-      promise2 = promise1.then @dbRepo.query(insert_query2)
-      promise3 = promise2.then @dbRepo.query(insert_query3)
-      promise4 = promise3.then @dbRepo.query(insert_query1)
-      promise4.then ()=>
+      queries = []
+      queries.push @km.getInsertStatement(data_obj1)
+      queries.push @km.getInsertStatement(data_obj2)
+      queries.push @km.getInsertStatement(data_obj3)
+      queries.push @km.getInsertStatement(data_obj1)
+      @dbRepo.query(queries.join(";")).then ()=>
         query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 4 }
         @dbRepo.query(query_string).success (records)->
           expect(records.length).toBe 0

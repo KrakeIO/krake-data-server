@@ -832,11 +832,11 @@ describe "KrakeSetModel", ->
         "drug bank" : "what to do"
         "pingedAt" : new Date()
         "pingedAt" : new Date()
-      insert_query = @ksm.getInsertStatement(data_obj)
-      promise1 = @dbRepo.query(insert_query)
-      promise2 = promise1.then @dbRepo.query(insert_query)
-      promise3 = promise2.then @dbRepo.query(insert_query)
-      promise3.then ()=>
+      queries = []
+      queries.push @ksm.getInsertStatement(data_obj)
+      queries.push @ksm.getInsertStatement(data_obj)
+      queries.push @ksm.getInsertStatement(data_obj)
+      @dbRepo.query(queries.join(";")).then ()=>
         query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1 }
         @dbRepo.query(query_string).success (records)->
           expect(records.length).toEqual 1
@@ -865,15 +865,12 @@ describe "KrakeSetModel", ->
       data_obj3 = 
         "drug bank" : "what to do again and again"
 
-      insert_query1 = @ksm.getInsertStatement(data_obj1)
-      insert_query2 = @ksm.getInsertStatement(data_obj2)
-      insert_query3 = @ksm.getInsertStatement(data_obj3)
-
-      promise1 = @dbRepo.query(insert_query1)
-      promise2 = promise1.then @dbRepo.query(insert_query2)
-      promise3 = promise2.then @dbRepo.query(insert_query3)
-      promise4 = promise3.then @dbRepo.query(insert_query1)
-      promise4.then ()=>
+      queries = []
+      queries.push @ksm.getInsertStatement(data_obj1)
+      queries.push @ksm.getInsertStatement(data_obj2)
+      queries.push @ksm.getInsertStatement(data_obj3)
+      queries.push @ksm.getInsertStatement(data_obj1)
+      @dbRepo.query(queries.join(";")).then ()=>
         query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 0 }
         @dbRepo.query(query_string).success (records)->
           expect(records.length).toEqual 1
@@ -889,15 +886,12 @@ describe "KrakeSetModel", ->
       data_obj3 = 
         "drug bank" : "what to do again and again"
 
-      insert_query1 = @ksm.getInsertStatement(data_obj1)
-      insert_query2 = @ksm.getInsertStatement(data_obj2)
-      insert_query3 = @ksm.getInsertStatement(data_obj3)
-
-      promise1 = @dbRepo.query(insert_query1)
-      promise2 = promise1.then @dbRepo.query(insert_query2)
-      promise3 = promise2.then @dbRepo.query(insert_query3)
-      promise4 = promise3.then @dbRepo.query(insert_query1)
-      promise4.then ()=>
+      queries = []
+      queries.push @ksm.getInsertStatement(data_obj1)
+      queries.push @ksm.getInsertStatement(data_obj2)
+      queries.push @ksm.getInsertStatement(data_obj3)
+      queries.push @ksm.getInsertStatement(data_obj1)
+      @dbRepo.query(queries.join(";")).then ()=>
         query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 4 }
         @dbRepo.query(query_string).success (records)->
           expect(records.length).toBe 0

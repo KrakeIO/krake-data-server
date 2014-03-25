@@ -39,24 +39,21 @@ describe "DataSetController", ->
     @set_name = "1_data_set_111111111111es"
     @repo1_name = "1_data_source_1111111es"
     @Krake = @dbSystem.define 'krakes', krakeSchema
+    @Records = @dbRepo.define @repo1_name, recordBody
+    @RecordSets = @dbRepo.define @set_name, recordSetBody
 
-    # Force reset dataSchema table in test database
-    promise1 = @Krake.sync({force: true})
-    promise2 = promise1.then ()=>
-      @Krake.create({ content: krake_definition, handle: @repo1_name})
-
-    promise3 = promise2.then ()=>
-      # Force reset dataRepository table in test database
-      @Records = @dbRepo.define @repo1_name, recordBody  
-      @Records.sync({force: true}).success ()=>
-
-        @RecordSets = @dbRepo.define @set_name, recordSetBody
-        @RecordSets.sync({force: true}).success ()=>        
-
-          @km = new KrakeModel @dbSystem, @repo1_name, ()=>
-            @ksm = new KrakeSetModel @dbSystem, @set_name, @km.columns, ()=>
-              @dsc = new DataSetController @dbSystem, @dbRepo, @set_name, ()=>
-              done()
+    chainer = new Sequelize.Utils.QueryChainer()
+    chainer
+      .add(@Krake.sync({force: true}))
+      .add(@Records.sync({force: true}))
+      .add(@RecordSets.sync({force: true}))
+      .run()
+      .success ()=>
+        @Krake.create({ content: krake_definition, handle: @repo1_name}).then ()=>
+            @km = new KrakeModel @dbSystem, @repo1_name, ()=>
+              @ksm = new KrakeSetModel @dbSystem, @set_name, @km.columns, ()=>
+                @dsc = new DataSetController @dbSystem, @dbRepo, @set_name, ()=>
+                done()
 
   describe "getRepoBatches", ->
     beforeEach (done)->
@@ -74,14 +71,10 @@ describe "DataSetController", ->
         "createdAt" : "2015-03-23 00:00:00"
         "updatedAt" : "2015-03-23 00:00:00"
 
-      insert_query1 = @km.getInsertStatement(data_obj1)
-      insert_query2 = @km.getInsertStatement(data_obj2)
-
-      promise1 = @dbRepo.query(insert_query1)
-      promise2 = promise1.then ()=>
-        @dbRepo.query(insert_query2)
-
-      promise2.then ()=>
+      queries = []
+      queries.push @km.getInsertStatement(data_obj1)
+      queries.push @km.getInsertStatement(data_obj2)
+      @dbRepo.query(queries.join(";")).then ()=>
         done()
 
     it "should return a list of all batches belonging to repo", (done)->
@@ -91,90 +84,172 @@ describe "DataSetController", ->
         expect(results[1]).toEqual "2015-03-22 00:00:00+00"
         done()
 
-  describe "clearMostRecent2Batches", ->
-    beforeEach (done)->
+  describe "clearBatches", ->
+
+    describe "from same data source", ->
+
+      beforeEach (done)->
+
+        d1 = 
+          "drug bank"         : "drug day 1"
+          "drug name"         : "drug name day 1"
+          "pingedAt"          : "2015-03-22 00:00:00"
+          "createdAt"         : "2015-03-22 00:00:00"
+          "updatedAt"         : "2015-03-22 00:00:00"
+
+        d2 = 
+          "drug bank"         : "drug day 2"
+          "drug name"         : "drug name day 2"
+          "pingedAt"          : "2015-03-23 00:00:00"
+          "createdAt"         : "2015-03-23 00:00:00"
+          "updatedAt"         : "2015-03-23 00:00:00"
+
+        d3 = 
+          "drug bank"         : "drug day 3"
+          "drug name"         : "drug name day 3"
+          "pingedAt"          : "2015-03-24 00:00:00"
+          "createdAt"         : "2015-03-24 00:00:00"
+          "updatedAt"         : "2015-03-24 00:00:00"
+
+        ds1 = 
+          "drug bank"         : "drug day 1"
+          "drug name"         : "drug name day 1"
+          "pingedAt"          : "2015-03-22 00:00:00"
+          "createdAt"         : "2015-03-22 00:00:00"
+          "updatedAt"         : "2015-03-22 00:00:00"
+          "datasource_handle" : "1_data_source_1111111es"
+
+        ds2 = 
+          "drug bank"         : "drug day 2"
+          "drug name"         : "drug name day 2"
+          "pingedAt"          : "2015-03-23 00:00:00"
+          "createdAt"         : "2015-03-23 00:00:00"
+          "updatedAt"         : "2015-03-23 00:00:00"
+          "datasource_handle" : "1_data_source_1111111es"
+
+        ds3 = 
+          "drug bank"         : "drug day 3"
+          "drug name"         : "drug name day 3"
+          "pingedAt"          : "2015-03-24 00:00:00"
+          "createdAt"         : "2015-03-24 00:00:00"
+          "updatedAt"         : "2015-03-24 00:00:00"
+          "datasource_handle" : "1_data_source_1111111es"
+
+        queries = []
+
+        queries.push @km.getInsertStatement(d1)
+        queries.push @km.getInsertStatement(d2)
+        queries.push @km.getInsertStatement(d3)
+
+        queries.push @ksm.getInsertStatement(ds1)
+        queries.push @ksm.getInsertStatement(ds2)
+        queries.push @ksm.getInsertStatement(ds3)
+
+        @dbRepo.query(queries.join(";")).then ()=>
+          done()
+
+      it "should clear all records belonging to data source", (done)->
+        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          expect(records.length).toEqual 3
+          @dsc.clearBatches @repo1_name, null, ()=>
+            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+              expect(records.length).toEqual 0
+              done()
+
+      it "should clear records belonging to the two most recent batches", (done)->
+        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          expect(records.length).toEqual 3
+          @dsc.clearBatches @repo1_name, 2, ()=>
+            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+              expect(records.length).toEqual 1
+              expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
+              done()
+
+    describe "from one data source in many", ->
+
+      beforeEach (done)->
+        @repo2_name = "2_data_source_2222222es"
+
+        d1 = 
+          "drug bank"         : "drug day 1"
+          "drug name"         : "drug name day 1"
+          "pingedAt"          : "2015-03-22 00:00:00"
+          "createdAt"         : "2015-03-22 00:00:00"
+          "updatedAt"         : "2015-03-22 00:00:00"
+
+        ds1 = 
+          "drug bank"         : "drug day 1"
+          "drug name"         : "drug name day 1"
+          "pingedAt"          : "2015-03-22 00:00:00"
+          "createdAt"         : "2015-03-22 00:00:00"
+          "updatedAt"         : "2015-03-22 00:00:00"
+          "datasource_handle" : @repo1_name
+
+        ds2 = 
+          "drug bank"         : "drug day 3"
+          "drug name"         : "drug name day 3"
+          "pingedAt"          : "2015-03-22 00:00:00"
+          "createdAt"         : "2015-03-22 00:00:00"
+          "updatedAt"         : "2015-03-22 00:00:00"
+          "datasource_handle" : @repo2_name
+
+        queries = []
+        queries.push @km.getInsertStatement(d1)
+        queries.push @ksm.getInsertStatement(ds1)
+        queries.push @ksm.getInsertStatement(ds2)
+        @dbRepo.query(queries.join(";")).then ()=>
+          done()     
+
+      it "should clear all records belonging to one data source only", (done)->
+        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          expect(records.length).toEqual 2
+          @dsc.clearBatches @repo1_name, null, ()=>
+            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+              expect(records.length).toEqual 1
+              expect(records[0].datasource_handle).toEqual @repo2_name
+              done() 
+
+  describe "copyBatches", ->
+
+    it "should copy the all records over", (done)->
       d1 = 
-        "drug bank"         : "drug day 1"
+        "drug bank"         : "drug day 1 funky"
         "drug name"         : "drug name day 1"
         "pingedAt"          : "2015-03-22 00:00:00"
         "createdAt"         : "2015-03-22 00:00:00"
         "updatedAt"         : "2015-03-22 00:00:00"
 
       d2 = 
-        "drug bank"         : "drug day 2"
+        "drug bank"         : "drug day 2 funky"
         "drug name"         : "drug name day 2"
         "pingedAt"          : "2015-03-23 00:00:00"
         "createdAt"         : "2015-03-23 00:00:00"
         "updatedAt"         : "2015-03-23 00:00:00"
 
       d3 = 
-        "drug bank"         : "drug day 3"
+        "drug bank"         : "drug day 3 funky"
         "drug name"         : "drug name day 3"
         "pingedAt"          : "2015-03-24 00:00:00"
         "createdAt"         : "2015-03-24 00:00:00"
         "updatedAt"         : "2015-03-24 00:00:00"
 
-      ds1 = 
-        "drug bank"         : "drug day 1"
-        "drug name"         : "drug name day 1"
-        "pingedAt"          : "2015-03-22 00:00:00"
-        "createdAt"         : "2015-03-22 00:00:00"
-        "updatedAt"         : "2015-03-22 00:00:00"
-        "datasource_handle" : "1_data_source_1111111es"
-
-      ds2 = 
-        "drug bank"         : "drug day 2"
-        "drug name"         : "drug name day 2"
-        "pingedAt"          : "2015-03-23 00:00:00"
-        "createdAt"         : "2015-03-23 00:00:00"
-        "updatedAt"         : "2015-03-23 00:00:00"
-        "datasource_handle" : "1_data_source_1111111es"
-
-      ds3 = 
-        "drug bank"         : "drug day 3"
-        "drug name"         : "drug name day 3"
-        "pingedAt"          : "2015-03-24 00:00:00"
-        "createdAt"         : "2015-03-24 00:00:00"
-        "updatedAt"         : "2015-03-24 00:00:00"
-        "datasource_handle" : "1_data_source_1111111es"
-
-      insert_query1 = @km.getInsertStatement(d1)
-      insert_query2 = @km.getInsertStatement(d2)
-      insert_query3 = @km.getInsertStatement(d3)
-
-      insert_query4 = @ksm.getInsertStatement(ds1)
-      insert_query5 = @ksm.getInsertStatement(ds2)
-      insert_query6 = @ksm.getInsertStatement(ds3)
-
-      promise1 = @dbRepo.query insert_query1
-      promise2 = promise1.then ()=>
-        @dbRepo.query insert_query2
-
-      promise3 = promise2.then ()=>
-        @dbRepo.query insert_query3
-
-      promise4 = promise3.then ()=>
-        @dbRepo.query insert_query4
-
-      promise5 = promise4.then ()=>
-        @dbRepo.query insert_query5
-
-      promise6 = promise4.then ()=>
-        @dbRepo.query insert_query6
-
-      promise6.then ()=>
-        done()
-
-    it "should return a list of all batches belonging to repo", (done)->
-      @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-        expect(records.length).toEqual 3
-        @dsc.clearMostRecent2Batches @repo1_name, ()=>
-          @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-            expect(records.length).toEqual 1
-            expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
-            done()
-
-  describe "clearMostRecent2Batches", ->
+      queries = []
+      queries.push @km.getInsertStatement(d1)
+      queries.push @km.getInsertStatement(d2)
+      queries.push @km.getInsertStatement(d3)
+      @dbRepo.query(queries.join(";")).then ()=>
+        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          expect(records.length).toEqual 0
+          @dsc.copyBatches @repo1_name, null, ()=>
+            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+              expect(records.length).toEqual 3
+              expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
+              expect(records[0]["drug bank"]).toEqual "drug day 3 funky"
+              expect(records[1].pingedAt).toEqual "2015-03-23 00:00:00"
+              expect(records[1]["drug bank"]).toEqual "drug day 2 funky"
+              expect(records[2].pingedAt).toEqual "2015-03-22 00:00:00"
+              expect(records[2]["drug bank"]).toEqual "drug day 1 funky"              
+              done()
 
     it "should copy the two most recent batch of records over", (done)->
       d1 = 
@@ -198,21 +273,15 @@ describe "DataSetController", ->
         "createdAt"         : "2015-03-24 00:00:00"
         "updatedAt"         : "2015-03-24 00:00:00"
 
-      insert_query1 = @km.getInsertStatement(d1)
-      insert_query2 = @km.getInsertStatement(d2)
-      insert_query3 = @km.getInsertStatement(d3)
+      queries = []
+      queries.push @km.getInsertStatement(d1)
+      queries.push @km.getInsertStatement(d2)
+      queries.push @km.getInsertStatement(d3)
 
-      promise1 = @dbRepo.query insert_query1
-      promise2 = promise1.then ()=>
-        @dbRepo.query insert_query2
-
-      promise3 = promise2.then ()=>
-        @dbRepo.query insert_query3
-
-      promise3.then ()=>
+      @dbRepo.query(queries.join(";")).then ()=>
         @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
           expect(records.length).toEqual 0
-          @dsc.copyMostRecent2Batches @repo1_name, ()=>
+          @dsc.copyBatches @repo1_name, 2, ()=>
             @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
               expect(records.length).toEqual 2
               expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
@@ -229,15 +298,11 @@ describe "DataSetController", ->
         "createdAt"         : "2015-03-22 00:00:00"
         "updatedAt"         : "2015-03-22 00:00:00"
 
-
-      insert_query1 = @km.getInsertStatement(d1)
-
-      promise1 = @dbRepo.query insert_query1
-      promise1.then ()=>
+      @dbRepo.query(@km.getInsertStatement(d1)).then ()=>
 
         @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
           expect(records.length).toEqual 0
-          @dsc.copyMostRecent2Batches @repo1_name, ()=>
+          @dsc.copyBatches @repo1_name, 2, ()=>
             @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
               expect(records.length).toEqual 1
               expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
@@ -247,7 +312,7 @@ describe "DataSetController", ->
     it "should not crash when there are not records", (done)->
       @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
         expect(records.length).toEqual 0
-        @dsc.copyMostRecent2Batches @repo1_name, ()=>
+        @dsc.copyBatches @repo1_name, 2, ()=>
           @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
             expect(records.length).toEqual 0
             done()
