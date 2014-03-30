@@ -16,7 +16,7 @@
     , "pg" : ""
     , "pg-hstore" : ""
     , "rimraf": ""
-    , "sequelize": "1.7.0"
+    , "sequelize": "2.0"
   },
   "devDependencies": {
     "request": ""

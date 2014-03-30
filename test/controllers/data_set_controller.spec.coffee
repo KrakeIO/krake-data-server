@@ -14,15 +14,6 @@ catch error
   console.log 'cannot parse config.js, %s', error
   process.exit(1)
   
-options = {}
-options.host = process.env['KRAKE_PG_HOST'] || CONFIG.postgres.host
-options.port = CONFIG.postgres.port
-options.dialect = 'postgres'
-options.logging = false
-pool = {}
-pool.maxConnections = 5
-pool.maxIdleTime = 30
-options.pool = pool
 userName = process.env['KRAKE_PG_USERNAME'] || CONFIG.postgres.username
 password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
@@ -34,7 +25,21 @@ krake_definition = fs.readFileSync(__dirname + '/../fixtures/krake_definition.js
 describe "DataSetController", ->
 
   beforeEach (done)->
+
+    options = {}
+    options.host = process.env['KRAKE_PG_HOST'] || CONFIG.postgres.host
+    options.port = CONFIG.postgres.port
+    options.dialect = 'postgres'
+    options.logging = false
+    pool = {}
+    pool.maxConnections = 5
+    pool.maxIdleTime = 30
+    options.pool = pool
+    
     @dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
+
+    options["define"]=
+      underscored: true
     @dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
     @set_name = "1_data_set_111111111111es"
     @repo1_name = "1_data_source_1111111es"

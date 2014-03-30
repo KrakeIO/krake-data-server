@@ -26,6 +26,10 @@ userName = process.env['KRAKE_PG_USERNAME'] || CONFIG.postgres.username
 password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
 dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
+
+options["define"]=
+  underscored: true
+  
 dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 
 KrakeModel = require '../../models/krake_model'
