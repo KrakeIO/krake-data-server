@@ -6,27 +6,52 @@ fs = require 'fs'
 Sequelize = require 'sequelize'
 krake_definition = fs.readFileSync(__dirname + '/fixtures/krake_definition.json').toString()
 
-test_objects = require "../krake_data_server"
-app = test_objects.app
-dbRepo = test_objects.dbRepo
-dbSystem = test_objects.dbSystem
-krakeSchema = test_objects.krakeSchema
-recordBody = test_objects.recordBody
-recordSetBody = test_objects.recordSetBody
+test_objects    = require "../krake_data_server"
+app             = test_objects.app
+dbRepo          = test_objects.dbRepo
+dbSystem        = test_objects.dbSystem
+krakeSchema     = test_objects.krakeSchema
+recordBody      = test_objects.recordBody
+recordSetBody   = test_objects.recordSetBody
 CacheController = test_objects.CacheController
+
+dataSetSchema           = require('krake-toolkit').schema.data_set
+dataSetKrakeSchema      = require('krake-toolkit').schema.data_set_krake
+dataSetKrakeRuleSchema  = require('krake-toolkit').schema.data_set_krake_rule
 
 describe "krake data server", ->
   beforeEach (done)->
+    @dbRepo = dbRepo
+    @dbSystem = dbSystem    
     @repo_name = "1_66240a39bc8c73a3ec2a08222936fc49eses"
+    @set_name = "1_data_set_111111111111es"    
+
     @port = 9803
     @test_server = "http://localhost:" + @port + "/"
+
     @Krake = dbSystem.define 'krakes', krakeSchema    
-    @Records = dbRepo.define @repo_name, recordBody      
+    @DataSet          = @dbSystem.define 'data_sets', dataSetSchema
+    @DataSetKrake     = @dbSystem.define 'data_set_krakes', dataSetKrakeSchema
+    @DataSetKrakeRule = @dbSystem.define 'data_set_krake_rules', dataSetKrakeRuleSchema
+
+    @DataSet.hasMany @Krake, { through: @DataSetKrake}
+    @Krake.hasMany @DataSet, { through: @DataSetKrake}
+
+    @DataSetKrakeRule.belongsTo @DataSetKrake
+    @DataSetKrake.hasMany @DataSetKrakeRule, { as: "data_set_krake_rule", foreignKey: 'data_set_krake_id'}
+
+    @Records = dbRepo.define @repo_name, recordBody
+    @RecordSets = @dbRepo.define @set_name, recordSetBody
+
     app.listen @port
-    promise1 = @Krake.sync({force: true})
-    promise2 = promise1.then ()=>
-      @Krake.create({ content: krake_definition, handle: @repo_name})    
-      done()
+    @dbSystem.sync().done ()=>
+      chainer = new Sequelize.Utils.QueryChainer()
+        .add(@Krake.sync({force: true}))
+        .add(@Records.sync({force: true}))
+        .run()
+        .success ()=>      
+          @Krake.create({ content: krake_definition, handle: @repo_name})    
+          done()
 
   afterEach ()=>
     app.close()
@@ -45,17 +70,11 @@ describe "krake data server", ->
 
   describe "krake data server routes", ->
     beforeEach (done)->
-      @dbRepo = dbRepo
       @test_folder = "/tmp/test/"
       @cm = new CacheController @test_folder, dbRepo, recordBody
-
-      # Force reset dataRepository table in test database
-      @Records.sync({force: true}).success ()=>
-
-        # instantiates a krake model
-        @km = new KrakeModel dbSystem, @repo_name, ()->
-          request @test_server + @repo_name + '/clear_cache', (error, response, body)->
-            done()
+      @km = new KrakeModel dbSystem, @repo_name, ()->
+        request @test_server + @repo_name + '/clear_cache', (error, response, body)->
+          done()
 
     afterEach (done)->
       request @test_server + @repo_name + '/clear_cache', (error, response, body)->
@@ -97,16 +116,11 @@ describe "krake data server", ->
 
   describe "/connect", ->
     beforeEach (done)->
-      @dbRepo = dbRepo
-      @dbSystem = dbSystem
-      @set_name = "1_data_set_111111111111es"
       @repo1_name = "1_data_source_1111111es"
-      @Records = @dbRepo.define @repo1_name, recordBody  
-      @RecordSets = @dbRepo.define @set_name, recordSetBody
+      @Records    = @dbRepo.define @repo1_name, recordBody  
 
       chainer = new Sequelize.Utils.QueryChainer()
       chainer
-        .add(@Krake.sync({force: true}))
         .add(@Records.sync({force: true}))
         .add(@RecordSets.sync({force: true}))
         .run()
@@ -171,16 +185,11 @@ describe "krake data server", ->
 
   describe "/synchronize", ->
     beforeEach (done)->
-      @dbRepo = dbRepo
-      @dbSystem = dbSystem
-      @set_name = "1_data_set_111111111111es"
       @repo1_name = "1_data_source_1111111es" 
       @Records = @dbRepo.define @repo1_name, recordBody
-      @RecordSets = @dbRepo.define @set_name, recordSetBody      
 
       chainer = new Sequelize.Utils.QueryChainer()
       chainer
-        .add(@Krake.sync({force: true}))
         .add(@Records.sync({force: true}))
         .add(@RecordSets.sync({force: true}))
         .run()
@@ -243,16 +252,11 @@ describe "krake data server", ->
 
   describe "/disconnect", ->
     beforeEach (done)->
-      @dbRepo = dbRepo
-      @dbSystem = dbSystem
-      @set_name = "1_data_set_111111111111es"
       @repo1_name = "1_data_source_1111111es" 
       @repo2_name = "2_data_source_2222222es"
-      @RecordSets = @dbRepo.define @set_name, recordSetBody      
 
       chainer = new Sequelize.Utils.QueryChainer()
       chainer
-        .add(@Krake.sync({force: true}))
         .add(@Records.sync({force: true}))
         .add(@RecordSets.sync({force: true}))
         .run()

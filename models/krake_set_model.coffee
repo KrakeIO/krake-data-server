@@ -8,6 +8,7 @@ dataSetKrakeRuleSchema  = require('krake-toolkit').schema.data_set_krake_rule
 class KrakeSetModel
   
   constructor : (@dbSystem, @set_name, @columns, callback)->
+    @columns = @columns || []
     @krakes = []
     @hstore_col = "properties"
     @handle_col = "datasource_handle"
@@ -15,8 +16,6 @@ class KrakeSetModel
     @common_cols = @status_cols.concat([@hstore_col]).concat([@handle_col])
 
     @sync ()=>    
-      @columns = @columns || []
-
       @status_cols.forEach (curr_col)=>
         if curr_col not in @columns then @columns.push curr_col
 
