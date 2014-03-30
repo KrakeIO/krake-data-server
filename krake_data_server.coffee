@@ -42,6 +42,7 @@ krakeSchema = require('krake-toolkit').schema.krake
 Krake = dbSystem.define 'krakes', krakeSchema
 
 cm = new CacheController CONFIG.cachePath, dbRepo, recordBody
+csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody
 
 # Web Server section of system
 app = module.exports = express.createServer();
@@ -64,6 +65,7 @@ app.get '/env', (req, res)->
 
 # @Description : clears all the cache generated for table
 app.get '/:data_repository/clear_cache', (req, res)=>
+  console.log "[DATA_SERVER] clear cache"
   cm.clearCache req.params.data_repository, (err, status)=>
     if err
       res.send {status: "failed", error: err}
@@ -72,6 +74,7 @@ app.get '/:data_repository/clear_cache', (req, res)=>
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
+  console.log "[DATA_SERVER] data source query"
   data_repository = req.params.data_repository
   km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
     query_obj = req.query.q && JSON.parse(req.query.q) || {}
@@ -82,28 +85,32 @@ app.get '/:data_repository/:format', (req, res)=>
 
 # @Description : Copies all records from data_repository over to dataset_repository
 app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
+  console.log "[DATA_SERVER] data set connect"
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.consolidateBatches req.params.data_repository, null, ()=>
       res.send {status: "success", message: "connected" }
 
 # @Description : Updates the records from data_repository over to dataset_repository
 app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
+  console.log "[DATA_SERVER] data set synchronize"
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.consolidateBatches req.params.data_repository, 2, ()=>
       res.send {status: "success", message: "synchronized" }
 
 # @Description : Removes all records belonging to data_repository from dataset_repository
 app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
+  console.log "[DATA_SERVER] data set disconnect"
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.clearBatches req.params.data_repository, null, ()=>
       res.send {status: "success", message: "disconnected" }
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/data_set/:dataset_repository/:format', (req, res)=>
+  console.log "[DATA_SERVER] data set query"
   dataset_repository = req.params.dataset_repository
   ksm = new KrakeSetModel dbSystem, dataset_repository, null, (status, error_message)=>
     query_obj = req.query.q && JSON.parse(req.query.q) || {}
-    cm.getCache dataset_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
+    csm.getCache dataset_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
       if req.params.format == 'csv'
         res.header 'Content-Disposition', 'attachment;filename=' + req.params.dataset_repository + '.csv'
       fs.createReadStream(path_to_cache).pipe res
