@@ -77,6 +77,16 @@ app.get '/:data_repository/clear_cache', (req, res)=>
       res.send {status: "success"}
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
+app.get '/:data_repository/schema', (req, res)=>
+  console.log "[DATA_SERVER] data source schema"
+  data_repository = req.params.data_repository
+  km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+    response = 
+      columns: km.columns || []
+    res.send response 
+
+
+# @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
   console.log "[DATA_SERVER] data source query"
   data_repository = req.params.data_repository
@@ -109,10 +119,20 @@ app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
       res.send {status: "success", message: "disconnected" }
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
+app.get '/data_set/:dataset_repository/schema', (req, res)=>
+  console.log "[DATA_SERVER] data set schema"
+  dataset_repository = req.params.dataset_repository
+  ksm = new KrakeSetModel dbSystem, dataset_repository, [], (status, error_message)=>
+    response = 
+      columns: ksm.columns || []
+    res.send response 
+
+# @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/data_set/:dataset_repository/:format', (req, res)=>
   console.log "[DATA_SERVER] data set query"
   dataset_repository = req.params.dataset_repository
-  ksm = new KrakeSetModel dbSystem, dataset_repository, null, (status, error_message)=>
+  ksm = new KrakeSetModel dbSystem, dataset_repository, [], (status, error_message)=>
+
     query_obj = req.query.q && JSON.parse(req.query.q) || {}
     csm.getCache dataset_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
       if req.params.format == 'csv'

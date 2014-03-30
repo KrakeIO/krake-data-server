@@ -105,9 +105,7 @@ describe "KrakeSetModel", ->
   describe "multiple krakes", (done)->
 
     it "should return two krakes ", (done)->
-      krake_definition  = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
       promise6 = @Krake.create({ content: krake_definition, handle: @repo_name})
-
 
       promise7 = promise6.then (krake_obj2)=>
         @dataset_obj.setKrakes [@krake_obj, krake_obj2]
@@ -124,7 +122,6 @@ describe "KrakeSetModel", ->
             done()
 
     it "should return not return duplicate cols if both krakes share the same krake definition ", (done)->
-      krake_definition  = fs.readFileSync(__dirname + '/../fixtures/krake_definition.json').toString()
       promise6 = @Krake.create({ content: krake_definition, handle: @repo_name})
 
       promise7 = promise6.then (krake_obj2)=>
@@ -135,6 +132,20 @@ describe "KrakeSetModel", ->
 
       promise8.then (krakes)=>
         @ksm = new KrakeSetModel @dbSystem, @set_name, [], ()=>
+          expect(@ksm.columns.length).toEqual 10
+          done()
+
+    it "should work null is inserted as in the column param", (done)->
+      promise6 = @Krake.create({ content: krake_definition, handle: @repo_name})
+
+      promise7 = promise6.then (krake_obj2)=>
+        @dataset_obj.setKrakes [@krake_obj, krake_obj2]
+
+      promise8 = promise7.then ()=>
+        @dataset_obj.getKrakes()
+
+      promise8.then (krakes)=>
+        @ksm = new KrakeSetModel @dbSystem, @set_name, null, ()=>
           expect(@ksm.columns.length).toEqual 10
           done()
 
