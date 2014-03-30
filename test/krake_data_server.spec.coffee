@@ -255,45 +255,46 @@ describe "krake data server", ->
         .add(@Krake.sync({force: true}))
         .add(@Records.sync({force: true}))
         .add(@RecordSets.sync({force: true}))
-        .add(@Krake.create({ content: krake_definition, handle: @repo1_name}))
-        .add(@Krake.create({ content: krake_definition, handle: @repo2_name}))
         .run()
         .success ()=>
-          @km = new KrakeModel dbSystem, @repo1_name, ()=>
-            @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
-              d1 = 
-                "drug bank"         : "drug day 1"
-                "drug name"         : "drug name day 1"
-                "pingedAt"          : "2015-03-22 00:00:00"
-                "createdAt"         : "2015-03-22 00:00:00"
-                "updatedAt"         : "2015-03-22 00:00:00"
+          @Krake.create({ content: krake_definition, handle: @repo1_name}).success ()=>
+            @Krake.create({ content: krake_definition, handle: @repo2_name}).success ()=>
+              @km = new KrakeModel dbSystem, @repo1_name, ()=>
+                @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
-              ds1 = 
-                "drug bank"         : "drug day 1"
-                "drug name"         : "drug name day 1"
-                "pingedAt"          : "2015-03-22 00:00:00"
-                "createdAt"         : "2015-03-22 00:00:00"
-                "updatedAt"         : "2015-03-22 00:00:00"
-                "datasource_handle" : @repo1_name
+                  d1 = 
+                    "drug bank"         : "drug day 1"
+                    "drug name"         : "drug name day 1"
+                    "pingedAt"          : "2015-03-22 00:00:00"
+                    "createdAt"         : "2015-03-22 00:00:00"
+                    "updatedAt"         : "2015-03-22 00:00:00"
 
-              ds2 = 
-                "drug bank"         : "drug day 3"
-                "drug name"         : "drug name day 3"
-                "pingedAt"          : "2015-03-22 00:00:00"
-                "createdAt"         : "2015-03-22 00:00:00"
-                "updatedAt"         : "2015-03-22 00:00:00"
-                "datasource_handle" : @repo2_name
+                  ds1 = 
+                    "drug bank"         : "drug day 1"
+                    "drug name"         : "drug name day 1"
+                    "pingedAt"          : "2015-03-22 00:00:00"
+                    "createdAt"         : "2015-03-22 00:00:00"
+                    "updatedAt"         : "2015-03-22 00:00:00"
+                    "datasource_handle" : @repo1_name
 
-              queries = []
-              queries.push @km.getInsertStatement(d1)
-              queries.push @ksm.getInsertStatement(ds1)
-              queries.push @ksm.getInsertStatement(ds2)
-              queries_st = queries.join(";")
+                  ds2 = 
+                    "drug bank"         : "drug day 3"
+                    "drug name"         : "drug name day 3"
+                    "pingedAt"          : "2015-03-22 00:00:00"
+                    "createdAt"         : "2015-03-22 00:00:00"
+                    "updatedAt"         : "2015-03-22 00:00:00"
+                    "datasource_handle" : @repo2_name
 
-              promise1 = @dbRepo.query queries_st
-              promise1.then ()=>
-                done()  
+                  queries = []
+                  queries.push @km.getInsertStatement(d1)
+                  queries.push @ksm.getInsertStatement(ds1)
+                  queries.push @ksm.getInsertStatement(ds2)
+                  queries_st = queries.join(";")
+
+                  promise1 = @dbRepo.query queries_st
+                  promise1.then ()=>
+                    done()  
 
 
     it "should delete all records belonging to data source table from data set table", (done)->

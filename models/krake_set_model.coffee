@@ -25,12 +25,10 @@ class KrakeSetModel
       callback && callback true
 
   sync : (callback)->
-    console.log schemaConfig 
-    @Krake            = @dbSystem.define 'krakes', krakeSchema, schemaConfig 
-    console.log @Krake
-    @DataSet          = @dbSystem.define 'data_sets', dataSetSchema, schemaConfig
-    @DataSetKrake     = @dbSystem.define 'data_set_krakes', dataSetKrakeSchema, schemaConfig
-    @DataSetKrakeRule = @dbSystem.define 'data_set_krake_rules', dataSetKrakeRuleSchema, schemaConfig
+    @Krake            = @dbSystem.define 'krakes', krakeSchema
+    @DataSet          = @dbSystem.define 'data_sets', dataSetSchema
+    @DataSetKrake     = @dbSystem.define 'data_set_krakes', dataSetKrakeSchema
+    @DataSetKrakeRule = @dbSystem.define 'data_set_krake_rules', dataSetKrakeRuleSchema
 
     @DataSet.hasMany @Krake, { through: @DataSetKrake}
     @Krake.hasMany @DataSet, { through: @DataSetKrake}
@@ -60,7 +58,7 @@ class KrakeSetModel
           callback && callback @krakes
 
       .error (error)=>
-        console.log error
+        console.log "Error: %s ", error
         callback && callback()
 
   setFullColumns : ()->
