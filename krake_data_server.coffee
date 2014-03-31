@@ -1,19 +1,22 @@
 # @Description : this is a data server where users will call to consume the data
 #   Sample:
 #     http://data.krake.io/1_grouponsgs/json?q={"limit"":10,"offset"":10,"parent_cat_id":"45","status":"Active","createdAt":{"gt":"2013-04-15"}}
-async = require 'async'
-express = require 'express'
-fs = require 'fs'
-kson = require 'kson'
-path = require 'path'
-Hstore = require 'pg-hstore' #https://github.com/scarney81/pg-hstore
-Sequelize = require 'sequelize'
-recordBody = require('krake-toolkit').schema.record
-recordSetBody = require('krake-toolkit').schema.record_set
-CacheController = require './controllers/cache_controller'
-DataSetController = require './controllers/data_set_controller'
-KrakeModel = require './models/krake_model'
-KrakeSetModel = require './models/krake_set_model'
+async             = require 'async'
+express           = require 'express'
+fs                = require 'fs'
+kson              = require 'kson'
+path              = require 'path'
+Hstore            = require 'pg-hstore' #https://github.com/scarney81/pg-hstore
+Sequelize         = require 'sequelize'
+recordBody           = require('krake-toolkit').schema.record
+recordSetBody        = require('krake-toolkit').schema.record_set
+
+KrakeModel              = require './models/krake_model'
+KrakeSetModel           = require './models/krake_set_model'
+ModelFactoryController  = require './controllers/model_factory_controller'
+
+CacheController         = require './controllers/cache_controller'
+DataSetController       = require './controllers/data_set_controller'
 
 CONFIG = null
 ENV = (process.env['NODE_ENV'] || 'development').toLowerCase()
@@ -47,6 +50,7 @@ Krake = dbSystem.define 'krakes', krakeSchema
 
 cm = new CacheController CONFIG.cachePath, dbRepo, recordBody
 csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody
+mfc = new ModelFactoryController dbSystem
 
 # Web Server section of system
 app = module.exports = express.createServer();
@@ -79,46 +83,44 @@ app.get '/:data_repository/clear_cache', (req, res)=>
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/schema', (req, res)=>
   console.log "[DATA_SERVER] data source schema"
-  data_repository = req.params.data_repository
-  km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
-    response = 
-      columns:       km.columns || []
-      url_columns:   km.url_columns || []
-      index_columns: km.index_columns || []      
-    res.send response 
+  data_repository = req.params.data_repository  
 
+  mfc.isKrake data_repository, (result)=>
+    result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+      response = 
+        columns:       km.columns || []
+        url_columns:   km.url_columns || []
+        index_columns: km.index_columns || []      
+      res.send response
 
+  mfc.isDataSet data_repository, (result)=>
+    result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
+      response = 
+        columns:       ksm.columns || []
+        url_columns:   ksm.url_columns || []
+        index_columns: ksm.index_columns || []
+      res.send response     
+  
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
   console.log "[DATA_SERVER] data source query"
   data_repository = req.params.data_repository
-  km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
-    query_obj = req.query.q && JSON.parse(req.query.q) || {}
-    cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
-      if req.params.format == 'csv'
-        res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
-      fs.createReadStream(path_to_cache).pipe res
 
-# @Description : Copies all records from data_repository over to dataset_repository
-app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
-  console.log "[DATA_SERVER] data set connect"
-  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
-    dsc.consolidateBatches req.params.data_repository, null, ()=>
-      res.send {status: "success", message: "connected" }
+  mfc.isKrake data_repository, (result)=>  
+    result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+      query_obj = req.query.q && JSON.parse(req.query.q) || {}
+      cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
+        if req.params.format == 'csv'
+          res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
+        fs.createReadStream(path_to_cache).pipe res
 
-# @Description : Updates the records from data_repository over to dataset_repository
-app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
-  console.log "[DATA_SERVER] data set synchronize"
-  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
-    dsc.consolidateBatches req.params.data_repository, 2, ()=>
-      res.send {status: "success", message: "synchronized" }
-
-# @Description : Removes all records belonging to data_repository from dataset_repository
-app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
-  console.log "[DATA_SERVER] data set disconnect"
-  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
-    dsc.clearBatches req.params.data_repository, null, ()=>
-      res.send {status: "success", message: "disconnected" }
+  mfc.isDataSet data_repository, (result)=>
+    result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
+      query_obj = req.query.q && JSON.parse(req.query.q) || {}
+      csm.getCache data_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
+        if req.params.format == 'csv'
+          res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
+        fs.createReadStream(path_to_cache).pipe res
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/data_set/:dataset_repository/schema', (req, res)=>
@@ -142,6 +144,27 @@ app.get '/data_set/:dataset_repository/:format', (req, res)=>
       if req.params.format == 'csv'
         res.header 'Content-Disposition', 'attachment;filename=' + req.params.dataset_repository + '.csv'
       fs.createReadStream(path_to_cache).pipe res
+
+# @Description : Copies all records from data_repository over to dataset_repository
+app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
+  console.log "[DATA_SERVER] data set connect"
+  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
+    dsc.consolidateBatches req.params.data_repository, null, ()=>
+      res.send {status: "success", message: "connected" }
+
+# @Description : Updates the records from data_repository over to dataset_repository
+app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
+  console.log "[DATA_SERVER] data set synchronize"
+  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
+    dsc.consolidateBatches req.params.data_repository, 2, ()=>
+      res.send {status: "success", message: "synchronized" }
+
+# @Description : Removes all records belonging to data_repository from dataset_repository
+app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
+  console.log "[DATA_SERVER] data set disconnect"
+  dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
+    dsc.clearBatches req.params.data_repository, null, ()=>
+      res.send {status: "success", message: "disconnected" }
 
 module.exports = 
   app : app
