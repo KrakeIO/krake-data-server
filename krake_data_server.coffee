@@ -82,7 +82,9 @@ app.get '/:data_repository/schema', (req, res)=>
   data_repository = req.params.data_repository
   km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
     response = 
-      columns: km.columns || []
+      columns:       km.columns || []
+      url_columns:   km.url_columns || []
+      index_columns: km.index_columns || []      
     res.send response 
 
 
@@ -124,7 +126,9 @@ app.get '/data_set/:dataset_repository/schema', (req, res)=>
   dataset_repository = req.params.dataset_repository
   ksm = new KrakeSetModel dbSystem, dataset_repository, [], (status, error_message)=>
     response = 
-      columns: ksm.columns || []
+      columns:       ksm.columns || []
+      url_columns:   ksm.url_columns || []
+      index_columns: ksm.index_columns || []
     res.send response 
 
 # @Description : Returns an array of JSON/CSV results based on query parameters

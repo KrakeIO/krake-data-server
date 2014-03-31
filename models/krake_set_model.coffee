@@ -9,6 +9,8 @@ class KrakeSetModel
   
   constructor : (@dbSystem, @set_name, @columns, callback)->
     @columns = @columns || []
+    @url_columns    = []
+    @index_columns  = []    
     @krakes = []
     @hstore_col = "properties"
     @handle_col = "datasource_handle"
@@ -61,8 +63,9 @@ class KrakeSetModel
         callback && callback()
 
   setFullColumns : ()->
-    @columns = @columns || []
-    @url_columns = @url_columns || []      
+    @columns        = @columns || []
+    @url_columns    = @url_columns || []
+    @index_columns  = @index_columns || []
 
     if @krakes.length > 0
       for current_krake in @krakes
@@ -76,16 +79,17 @@ class KrakeSetModel
           for curr_col in curr_qh.getColumns()
             if curr_col not in @columns then @columns.push curr_col            
 
-        if curr_qh.getUrlColumns() && curr_qh.getUrlColumns() > 0
+        if curr_qh.getUrlColumns() && curr_qh.getUrlColumns().length > 0
           for curr_col in curr_qh.getUrlColumns()
             if curr_col not in @url_columns then @url_columns.push curr_col
 
+        if curr_qh.getIndexArray() && curr_qh.getIndexArray().length > 0
+          for curr_col in curr_qh.getIndexArray()
+            if curr_col not in @index_columns then @index_columns.push curr_col
+
     @status_cols.forEach (curr_col)=>
       if curr_col not in @columns then @columns.push curr_col
-
         
- 
-  
 
   getInsertStatement : (data_obj)->
     insert_keys_string = @common_cols.map((column)=>
