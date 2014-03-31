@@ -110,7 +110,7 @@ describe "krake data server", ->
           done()
 
     it "should return all the columns for data set", (done)->
-      api_location = @test_server + 'data_set/' + @set_name + '/schema'
+      api_location = @test_server + @set_name + '/schema'
       request api_location, (error, response, body)=>
         expect(()=>
           JSON.parse body
