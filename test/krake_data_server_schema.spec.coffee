@@ -4,7 +4,7 @@ KrakeModel = require '../models/krake_model'
 KrakeSetModel = require '../models/krake_set_model'
 fs = require 'fs'
 Sequelize = require 'sequelize'
-krake_definition = fs.readFileSync(__dirname + '/fixtures/krake_definition.json').toString()
+krake_definition = fs.readFileSync(__dirname + '/fixtures/krake_definition_for_schema.json').toString()
 
 test_objects    = require "../krake_data_server"
 app             = test_objects.app
@@ -65,15 +65,17 @@ describe "krake data server", ->
             done()
 
 
-    it "should return all the columns ", (done)->
+    it "should return all the columns for data source", (done)->
       d1 = new Date()
       api_location = @test_server + @repo_name + '/schema'
       request api_location, (error, response, body)=>
         expect(()=>
           JSON.parse body
         ).not.toThrow()
-        results = JSON.parse body
-        expect(results["columns"].length).toEqual 9
+        results = JSON.parse body      
+        expect(results["columns"].length).toEqual 10
+        expect(results["url_columns"].length).toEqual 1
+        expect(results["index_columns"].length).toEqual 1
         done()    
 
   describe "/data_set/:dataset_repository/schema", ->
@@ -107,14 +109,16 @@ describe "krake data server", ->
         @ksm = new KrakeSetModel @dbSystem, @set_name, [], ()=>
           done()
 
-    it "should port all records from data source table into data set table", (done)->
+    it "should return all the columns for data set", (done)->
       api_location = @test_server + 'data_set/' + @set_name + '/schema'
       request api_location, (error, response, body)=>
         expect(()=>
           JSON.parse body
         ).not.toThrow()
         results = JSON.parse body
-        expect(results["columns"].length).toEqual 10
+        expect(results["columns"].length).toEqual 11
+        expect(results["url_columns"].length).toEqual 1
+        expect(results["index_columns"].length).toEqual 1        
         done()
 
 

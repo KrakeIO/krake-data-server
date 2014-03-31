@@ -12,7 +12,9 @@ class KrakeModel
 
     gotKrakes = (krakes)=>
       if krakes.length == 0
-        @columns = []
+        @columns        = []
+        @url_columns    = []
+        @index_columns  = []
         callback && callback(false, "Sorry. The data repository you were looking for does not exist")
 
       else
@@ -29,7 +31,8 @@ class KrakeModel
         @status_cols.forEach (curr_col)=>
           if curr_col not in @columns then @columns.push curr_col
 
-        @url_columns = curr_qh.getUrlColumns()
+        @url_columns    = curr_qh.getUrlColumns()
+        @index_columns  = curr_qh.getIndexArray()
         callback && callback curr_qh.is_valid
 
   
