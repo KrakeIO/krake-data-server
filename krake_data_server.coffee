@@ -82,11 +82,10 @@ app.get '/:data_repository/clear_cache', (req, res)=>
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/schema', (req, res)=>
-  console.log "[DATA_SERVER] data source schema"
   data_repository = req.params.data_repository  
-
   mfc.isKrake data_repository, (result)=>
     result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+      console.log "[DATA_SERVER] data source schema"
       response = 
         columns:       km.columns || []
         url_columns:   km.url_columns || []
@@ -95,19 +94,19 @@ app.get '/:data_repository/schema', (req, res)=>
 
   mfc.isDataSet data_repository, (result)=>
     result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
+      console.log "[DATA_SERVER] data set schema"
       response = 
         columns:       ksm.columns || []
         url_columns:   ksm.url_columns || []
         index_columns: ksm.index_columns || []
       res.send response     
-  
+
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
-  console.log "[DATA_SERVER] data source query"
   data_repository = req.params.data_repository
-
   mfc.isKrake data_repository, (result)=>  
     result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+      console.log "[DATA_SERVER] data source query"      
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
         if req.params.format == 'csv'
@@ -116,34 +115,13 @@ app.get '/:data_repository/:format', (req, res)=>
 
   mfc.isDataSet data_repository, (result)=>
     result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
+      console.log "[DATA_SERVER] data set query"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       csm.getCache data_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
         if req.params.format == 'csv'
           res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
         fs.createReadStream(path_to_cache).pipe res
 
-# @Description : Returns an array of JSON/CSV results based on query parameters
-app.get '/data_set/:dataset_repository/schema', (req, res)=>
-  console.log "[DATA_SERVER] data set schema"
-  dataset_repository = req.params.dataset_repository
-  ksm = new KrakeSetModel dbSystem, dataset_repository, [], (status, error_message)=>
-    response = 
-      columns:       ksm.columns || []
-      url_columns:   ksm.url_columns || []
-      index_columns: ksm.index_columns || []
-    res.send response 
-
-# @Description : Returns an array of JSON/CSV results based on query parameters
-app.get '/data_set/:dataset_repository/:format', (req, res)=>
-  console.log "[DATA_SERVER] data set query"
-  dataset_repository = req.params.dataset_repository
-  ksm = new KrakeSetModel dbSystem, dataset_repository, [], (status, error_message)=>
-
-    query_obj = req.query.q && JSON.parse(req.query.q) || {}
-    csm.getCache dataset_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
-      if req.params.format == 'csv'
-        res.header 'Content-Disposition', 'attachment;filename=' + req.params.dataset_repository + '.csv'
-      fs.createReadStream(path_to_cache).pipe res
 
 # @Description : Copies all records from data_repository over to dataset_repository
 app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
@@ -165,6 +143,8 @@ app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.clearBatches req.params.data_repository, null, ()=>
       res.send {status: "success", message: "disconnected" }
+
+
 
 module.exports = 
   app : app
