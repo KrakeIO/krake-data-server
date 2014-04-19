@@ -64,10 +64,12 @@ class CacheController
       switch format
         when 'json'
           query = 'Copy ( select array_to_json(array_agg( row_to_json(row))) from (' +
-            query + ") row ) To '" + pathToFile + "';"
+            query + ") row ) To '" + pathToFile + "' With NULL '[]';"
 
         when 'csv'
           query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
+
+      console.log query
 
       @dbRepo.query(query).success(
         (rows)=>
