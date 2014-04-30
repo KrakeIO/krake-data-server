@@ -85,8 +85,8 @@ describe "DataSetController", ->
     it "should return a list of all batches belonging to repo", (done)->
       @dsc.getRepoBatches @repo1_name, (results)=>
         expect(results.length).toEqual 2
-        expect(results[0]).toEqual "2015-03-23 00:00:00+00"
-        expect(results[1]).toEqual "2015-03-22 00:00:00+00"
+        expect(results[0]).toEqual "2015-03-23 00:00:00"
+        expect(results[1]).toEqual "2015-03-22 00:00:00"
         done()
 
   describe "clearBatches", ->
