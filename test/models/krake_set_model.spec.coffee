@@ -1,3 +1,4 @@
+dateFormat              = require 'dateformat'
 fs                      = require 'fs'
 kson                    = require 'kson'
 Sequelize               = require 'sequelize'
@@ -113,29 +114,62 @@ describe "KrakeSetModel", ->
       expect(@ksm.simpleColName "col'1").toBe "properties::hstore->'col&#39;1'"
       done()
 
-  describe "compoundColName", ->
+  describe "compoundColNameSelect", ->
     it "should return correct common column name", (done)->
-      expect(@ksm.compoundColName "pingedAt").toBe '"pingedAt"'
+      expect(@ksm.compoundColNameSelect "pingedAt").toBe 'to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')'
+      done()
+
+    it "should return correct common column name", (done)->
+      expect(@ksm.compoundColNameSelect "createdAt").toBe 'to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\')'
+      done()
+
+    it "should return correct common column name", (done)->
+      expect(@ksm.compoundColNameSelect "updatedAt").toBe 'to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\')'
       done()
 
     it "should return correct common column name with auto replacement for double quote", (done)->
-      expect(@ksm.compoundColName "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
+      expect(@ksm.compoundColNameSelect "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
       done()
 
     it "should return correct common column name with auto replacement for single quote", (done)->
-      expect(@ksm.compoundColName "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
+      expect(@ksm.compoundColNameSelect "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
       done()
 
     it "should return correct repository column name", (done)->
-      expect(@ksm.compoundColName "col1").toBe "properties::hstore->'col1'"
+      expect(@ksm.compoundColNameSelect "col1").toBe "properties::hstore->'col1'"
       done()
 
     it "should return correct repository column name with auto replacement for double quote", (done)->
-      expect(@ksm.compoundColName "col\"1").toBe "properties::hstore->'col&#34;1'"
+      expect(@ksm.compoundColNameSelect "col\"1").toBe "properties::hstore->'col&#34;1'"
       done()
 
     it "should return correct repository column name with auto replacement for single quote", (done)->
-      expect(@ksm.compoundColName "col'1").toBe "properties::hstore->'col&#39;1'"
+      expect(@ksm.compoundColNameSelect "col'1").toBe "properties::hstore->'col&#39;1'"
+      done()
+
+  describe "compoundColNameWhere", ->
+    it "should return correct common column name", (done)->
+      expect(@ksm.compoundColNameWhere "pingedAt").toBe '"pingedAt"'
+      done()
+
+    it "should return correct common column name with auto replacement for double quote", (done)->
+      expect(@ksm.compoundColNameWhere "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
+      done()
+
+    it "should return correct common column name with auto replacement for single quote", (done)->
+      expect(@ksm.compoundColNameWhere "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
+      done()
+
+    it "should return correct repository column name", (done)->
+      expect(@ksm.compoundColNameWhere "col1").toBe "properties::hstore->'col1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for double quote", (done)->
+      expect(@ksm.compoundColNameWhere "col\"1").toBe "properties::hstore->'col&#34;1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for single quote", (done)->
+      expect(@ksm.compoundColNameWhere "col'1").toBe "properties::hstore->'col&#39;1'"
       done()
 
   describe "getInsertStatement", ->
@@ -275,7 +309,7 @@ describe "KrakeSetModel", ->
       promise2.then ()=>
         query_string = @ksm.getSelectStatement { $select : [{ $max : "pingedAt" }] }
         @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual d2
+          expect(records[0].pingedAt).toEqual dateFormat(d2, "UTC:yyyy-mm-dd HH:MM:ss")
           done()
 
     it "should return the earliest batch", (done)->
@@ -289,7 +323,7 @@ describe "KrakeSetModel", ->
       promise2.then ()=>
         query_string = @ksm.getSelectStatement { $select : [{ $min : "pingedAt" }] }
         @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual d1
+          expect(records[0].pingedAt).toEqual dateFormat(d1, "UTC:yyyy-mm-dd HH:MM:ss")
           done()
 
     it "should get the all the batches", (done)->
@@ -364,7 +398,7 @@ describe "KrakeSetModel", ->
     describe "$count", ->
       it "should return properly formatted common columns for $count", (done)->
         select_clause = @ksm.selectClause { $select : [{ $count : "pingedAt" }] }
-        expect(select_clause).toEqual 'count("pingedAt") as "pingedAt"'
+        expect(select_clause).toEqual 'count(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $count", (done)->
@@ -389,7 +423,7 @@ describe "KrakeSetModel", ->
     describe "$distinct", ->
       it "should return properly formatted common columns for $distinct", (done)->
         select_clause = @ksm.selectClause { $select : [{ $distinct : "pingedAt" }] }
-        expect(select_clause).toEqual 'distinct cast("pingedAt" as text) as "pingedAt"'
+        expect(select_clause).toEqual 'distinct cast(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as text) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $distinct", (done)->
@@ -414,7 +448,7 @@ describe "KrakeSetModel", ->
     describe "$max", ->
       it "should return properly formatted common columns for $max", (done)->
         select_clause = @ksm.selectClause { $select : [{ $max : "pingedAt" }] }
-        expect(select_clause).toEqual 'max("pingedAt") as "pingedAt"'
+        expect(select_clause).toEqual 'max(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $max", (done)->
@@ -439,7 +473,7 @@ describe "KrakeSetModel", ->
     describe "$min", ->
       it "should return properly formatted common columns for $min", (done)->
         select_clause = @ksm.selectClause { $select : [{ $min : "pingedAt" }] }
-        expect(select_clause).toEqual 'min("pingedAt") as "pingedAt"'
+        expect(select_clause).toEqual 'min(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $min", (done)->

@@ -1,12 +1,13 @@
-fs = require 'fs'
-kson = require 'kson'
-Sequelize = require 'sequelize'
-ktk = require 'krake-toolkit'
-recordBody = require('krake-toolkit').schema.record
+dateFormat  = require 'dateformat'
+fs          = require 'fs'
+kson        = require 'kson'
+Sequelize   = require 'sequelize'
+ktk         = require 'krake-toolkit'
+recordBody  = require('krake-toolkit').schema.record
 krakeSchema = require('krake-toolkit').schema.krake
 
-CONFIG = null
-ENV = "test"
+CONFIG      = null
+ENV         = "test"
 try 
   CONFIG = kson.parse(fs.readFileSync(__dirname + '/../../config/config.js').toString())[ENV];
 catch error
@@ -105,29 +106,62 @@ describe "KrakeModel", ->
       expect(@km.simpleColName "col'1").toBe "properties::hstore->'col&#39;1'"
       done()
 
-  describe "compoundColName", ->
+  describe "compoundColNameSelect", ->
     it "should return correct common column name", (done)->
-      expect(@km.compoundColName "pingedAt").toBe '"pingedAt"'
+      expect(@km.compoundColNameSelect "pingedAt").toBe 'to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')'
+      done()
+
+    it "should return correct common column name", (done)->
+      expect(@km.compoundColNameSelect "createdAt").toBe 'to_char("createdAt", \'YYYY-MM-DD HH24:MI:SS\')'
+      done()
+
+    it "should return correct common column name", (done)->
+      expect(@km.compoundColNameSelect "updatedAt").toBe 'to_char("updatedAt", \'YYYY-MM-DD HH24:MI:SS\')'
       done()
 
     it "should return correct common column name with auto replacement for double quote", (done)->
-      expect(@km.compoundColName "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
+      expect(@km.compoundColNameSelect "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
       done()
 
     it "should return correct common column name with auto replacement for single quote", (done)->
-      expect(@km.compoundColName "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
+      expect(@km.compoundColNameSelect "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
       done()
 
     it "should return correct repository column name", (done)->
-      expect(@km.compoundColName "col1").toBe "properties::hstore->'col1'"
+      expect(@km.compoundColNameSelect "col1").toBe "properties::hstore->'col1'"
       done()
 
     it "should return correct repository column name with auto replacement for double quote", (done)->
-      expect(@km.compoundColName "col\"1").toBe "properties::hstore->'col&#34;1'"
+      expect(@km.compoundColNameSelect "col\"1").toBe "properties::hstore->'col&#34;1'"
       done()
 
     it "should return correct repository column name with auto replacement for single quote", (done)->
-      expect(@km.compoundColName "col'1").toBe "properties::hstore->'col&#39;1'"
+      expect(@km.compoundColNameSelect "col'1").toBe "properties::hstore->'col&#39;1'"
+      done()
+
+  describe "compoundColNameWhere", ->
+    it "should return correct common column name", (done)->
+      expect(@km.compoundColNameWhere "pingedAt").toBe '"pingedAt"'
+      done()
+
+    it "should return correct common column name with auto replacement for double quote", (done)->
+      expect(@km.compoundColNameWhere "pin\"gedAt").toBe "properties::hstore->'pin&#34;gedAt'"
+      done()
+
+    it "should return correct common column name with auto replacement for single quote", (done)->
+      expect(@km.compoundColNameWhere "pin'gedAt").toBe "properties::hstore->'pin&#39;gedAt'"
+      done()
+
+    it "should return correct repository column name", (done)->
+      expect(@km.compoundColNameWhere "col1").toBe "properties::hstore->'col1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for double quote", (done)->
+      expect(@km.compoundColNameWhere "col\"1").toBe "properties::hstore->'col&#34;1'"
+      done()
+
+    it "should return correct repository column name with auto replacement for single quote", (done)->
+      expect(@km.compoundColNameWhere "col'1").toBe "properties::hstore->'col&#39;1'"
       done()
 
   describe "getInsertStatement", ->
@@ -267,7 +301,7 @@ describe "KrakeModel", ->
       promise2.then ()=>
         query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
         @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual d2
+          expect(records[0].pingedAt).toEqual dateFormat(d2, "UTC:yyyy-mm-dd HH:MM:ss")
           done()
 
     it "should return the earliest batch", (done)->
@@ -281,7 +315,7 @@ describe "KrakeModel", ->
       promise2.then ()=>
         query_string = @km.getSelectStatement { $select : [{ $min : "pingedAt" }] }
         @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual d1
+          expect(records[0].pingedAt).toEqual dateFormat(d1, "UTC:yyyy-mm-dd HH:MM:ss")
           done()
 
     it "should get the all the batches", (done)->
@@ -360,7 +394,7 @@ describe "KrakeModel", ->
     describe "$count", ->
       it "should return properly formatted common columns for $count", (done)->
         select_clause = @km.selectClause { $select : [{ $count : "pingedAt" }] }
-        expect(select_clause).toEqual 'count("pingedAt") as "pingedAt"'
+        expect(select_clause).toEqual 'count(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $count", (done)->
@@ -385,7 +419,7 @@ describe "KrakeModel", ->
     describe "$distinct", ->
       it "should return properly formatted common columns for $distinct", (done)->
         select_clause = @km.selectClause { $select : [{ $distinct : "pingedAt" }] }
-        expect(select_clause).toEqual 'distinct cast("pingedAt" as text) as "pingedAt"'
+        expect(select_clause).toEqual 'distinct cast(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as text) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $distinct", (done)->
@@ -410,7 +444,7 @@ describe "KrakeModel", ->
     describe "$max", ->
       it "should return properly formatted common columns for $max", (done)->
         select_clause = @km.selectClause { $select : [{ $max : "pingedAt" }] }
-        expect(select_clause).toEqual 'max("pingedAt") as "pingedAt"'
+        expect(select_clause).toEqual 'max(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $max", (done)->
@@ -435,7 +469,7 @@ describe "KrakeModel", ->
     describe "$min", ->
       it "should return properly formatted common columns for $min", (done)->
         select_clause = @km.selectClause { $select : [{ $min : "pingedAt" }] }
-        expect(select_clause).toEqual 'min("pingedAt") as "pingedAt"'
+        expect(select_clause).toEqual 'min(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')) as "pingedAt"'
         done()
 
       it "should return properly formatted repository columns for $min", (done)->

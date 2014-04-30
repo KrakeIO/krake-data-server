@@ -163,7 +163,16 @@ class KrakeSetModel
     else 
       @hstoreColName column
 
-  compoundColName : (column)->
+  compoundColNameSelect : (column)->
+    column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
+    if column in @common_cols && column in @status_cols
+      @timeStampColName column
+    else if column in @common_cols
+      '"' + column + '"'
+    else 
+      @hstoreColName column
+
+  compoundColNameWhere : (column)->
     column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
     if column in @common_cols 
       '"' + column + '"'
@@ -192,16 +201,16 @@ class KrakeSetModel
           operator = Object.keys(column)[0]
           switch operator
             when "$count"
-              "count(" + @compoundColName(column[operator]) + ") as " + @colLabel(column[operator]) 
+              "count(" + @compoundColNameSelect(column[operator]) + ") as " + @colLabel(column[operator]) 
 
             when "$distinct"
-              'distinct cast(' + @compoundColName(column[operator]) + ' as text) as ' + @colLabel(column[operator])
+              'distinct cast(' + @compoundColNameSelect(column[operator]) + ' as text) as ' + @colLabel(column[operator])
 
             when "$max"
-              "max(" + @compoundColName(column[operator]) + ") as " + @colLabel(column[operator]) 
+              "max(" + @compoundColNameSelect(column[operator]) + ") as " + @colLabel(column[operator]) 
 
             when "$min"
-              "min(" + @compoundColName(column[operator]) + ") as " + @colLabel(column[operator]) 
+              "min(" + @compoundColNameSelect(column[operator]) + ") as " + @colLabel(column[operator]) 
 
 
     ).join(",")
@@ -235,7 +244,7 @@ class KrakeSetModel
       sub_query = ""
       switch typeof(condition_obj[col_name])
         when "string" # Operators : =
-          sub_query = @compoundColName(col_name) + " = '" + condition_obj[col_name] + "'"
+          sub_query = @compoundColNameWhere(col_name) + " = '" + condition_obj[col_name] + "'"
 
         when "object"
           if condition_obj[col_name] instanceof Array  # Operators : $and, $or
@@ -252,25 +261,25 @@ class KrakeSetModel
             operator = Object.keys(condition_obj[col_name])[0]
             switch operator
               when "$contains"
-                sub_query = @compoundColName(col_name) + " like '%" + condition_obj[col_name][operator] + "%'"
+                sub_query = @compoundColNameWhere(col_name) + " like '%" + condition_obj[col_name][operator] + "%'"
 
               when "$gt"
-                sub_query = @compoundColName(col_name) + " > '" + condition_obj[col_name][operator] + "'"
+                sub_query = @compoundColNameWhere(col_name) + " > '" + condition_obj[col_name][operator] + "'"
 
               when "$gte"
-                sub_query = @compoundColName(col_name) + " >= '" + condition_obj[col_name][operator] + "'"
+                sub_query = @compoundColNameWhere(col_name) + " >= '" + condition_obj[col_name][operator] + "'"
 
               when "$lt"
-                sub_query = @compoundColName(col_name) + " < '" + condition_obj[col_name][operator] + "'"
+                sub_query = @compoundColNameWhere(col_name) + " < '" + condition_obj[col_name][operator] + "'"
 
               when "$lte"
-                sub_query = @compoundColName(col_name) + " <= '" + condition_obj[col_name][operator] + "'"
+                sub_query = @compoundColNameWhere(col_name) + " <= '" + condition_obj[col_name][operator] + "'"
 
               when "$ne"
-                sub_query = @compoundColName(col_name) + " != '" + condition_obj[col_name][operator] + "'"
+                sub_query = @compoundColNameWhere(col_name) + " != '" + condition_obj[col_name][operator] + "'"
 
               when "$exist"
-                sub_query = @compoundColName(col_name) + " not NULL"
+                sub_query = @compoundColNameWhere(col_name) + " not NULL"
 
       query.push sub_query
     query.join(" and ")
@@ -280,8 +289,8 @@ class KrakeSetModel
     query_obj.$order.map((column)=>
       operator = Object.keys(column)[0]
       switch operator
-        when "$asc" then @compoundColName(column[operator]) + " asc" 
-        when "$desc" then @compoundColName(column[operator]) + " desc" 
+        when "$asc" then @compoundColNameWhere(column[operator]) + " asc" 
+        when "$desc" then @compoundColNameWhere(column[operator]) + " desc" 
     ).join(",")
 
 module.exports = KrakeSetModel
