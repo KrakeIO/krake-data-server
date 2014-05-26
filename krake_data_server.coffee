@@ -8,8 +8,9 @@ kson              = require 'kson'
 path              = require 'path'
 Hstore            = require 'pg-hstore' #https://github.com/scarney81/pg-hstore
 Sequelize         = require 'sequelize'
-recordBody           = require('krake-toolkit').schema.record
-recordSetBody        = require('krake-toolkit').schema.record_set
+recordBody        = require('krake-toolkit').schema.record
+recordSetBody     = require('krake-toolkit').schema.record_set
+UnescapeStream    = require 'unescape-stream'
 
 KrakeModel              = require './models/krake_model'
 KrakeSetModel           = require './models/krake_set_model'
@@ -104,6 +105,8 @@ app.get '/:data_repository/schema', (req, res)=>
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
   data_repository = req.params.data_repository
+  unescape        = new UnescapeStream()
+
   mfc.isKrake data_repository, (result)=>  
     result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
       console.log "[DATA_SERVER] data source query"      
@@ -111,7 +114,9 @@ app.get '/:data_repository/:format', (req, res)=>
       cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
         if req.params.format == 'csv'
           res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
-        fs.createReadStream(path_to_cache).pipe res
+        fs.createReadStream(path_to_cache)
+          .pipe unescape
+          .pipe res
 
   mfc.isDataSet data_repository, (result)=>
     result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
@@ -120,7 +125,9 @@ app.get '/:data_repository/:format', (req, res)=>
       csm.getCache data_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
         if req.params.format == 'csv'
           res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
-        fs.createReadStream(path_to_cache).pipe res
+        fs.createReadStream(path_to_cache)
+          .pipe unescape
+          .pipe res
 
 
 # @Description : Copies all records from data_repository over to dataset_repository
