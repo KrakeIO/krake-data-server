@@ -47,7 +47,7 @@ class DataSetController
           #{copy_statement}
         END;\r\n
         "
-      console.log master_statement
+      # console.log master_statement
 
       @dbRepo.query(master_statement)   
         .success ()=> 
