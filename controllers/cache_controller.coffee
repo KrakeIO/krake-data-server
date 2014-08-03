@@ -47,7 +47,7 @@ class CacheController
         file_path = @cachePath + file_name
         fs.unlinkSync file_path
 
-    callback && callback()
+    callback?()
 
   # @Description : generates a cached record
   # @param : repo_name:String
