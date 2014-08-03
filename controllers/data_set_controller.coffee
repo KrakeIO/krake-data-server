@@ -42,7 +42,9 @@ class DataSetController
   clearBatches : (repo_name, num_of_batches, callback)->
     @getRepoBatches repo_name, (batches)=>
       if !batches 
-        console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : Batches is false for #{repo_name}"
+        console.log "[DATA_SET_CONTROLLER] #{new Date()} batches not returned " + 
+          "\r\n\tdata_set: #{@set_name}" +
+          "\r\n\trepo_name: #{repo_name} "
         callback?()
 
       else if batches.length > 0 
@@ -58,14 +60,22 @@ class DataSetController
 
         @dbRepo.query(del_query)
           .success ()=> 
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : clear batch of #{repo_name} successful "
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} clear batch successful " + 
+              "\r\n\tdata_set: #{@set_name}" +
+              "\r\n\trepo_name: #{repo_name} "
+
             callback?()
           .error (e)=>
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : clear batch of #{repo_name} failed : #{error}"
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} clear batch failed " +
+              "\r\n\tERROR: #{e}" +            
+              "\r\n\tdata_set: #{@set_name}" +
+              "\r\n\trepo_name: #{repo_name} "            
             callback?()
       
       else if batches.length == 0
-        console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : Batches Empty for #{repo_name}"
+        console.log "[DATA_SET_CONTROLLER] #{new Date()} batches empty" +
+              "\r\n\tdata_set: #{@set_name}" +
+              "\r\n\trepo_name: #{repo_name} "
         callback?()
 
   copyBatches : (repo_name, num_of_batches, callback)->
@@ -95,10 +105,15 @@ class DataSetController
 
         @dbRepo.query(query)
           .success ()=> 
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : copy of records from #{repo_name} successful"
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} copy of records successful" +
+              "\r\n\tdata_set: #{@set_name}" +
+              "\r\n\trepo_name: #{repo_name} "
             callback?()
           .error (e)=>
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : copy of records from #{repo_name} failed #{e}"
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} copy of records failed #{e}" +
+              "\r\n\tERROR: #{e}" +
+              "\r\n\tdata_set: #{@set_name}" +
+              "\r\n\trepo_name: #{repo_name} "            
 
 
 
