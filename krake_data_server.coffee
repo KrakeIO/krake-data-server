@@ -139,9 +139,7 @@ app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
 
 # @Description : Updates the records from data_repository over to dataset_repository
 app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
-  console.log "[DATA_SERVER] data set synchronize: " +
-    "\r\n\tkrake_handle: #{req.params.data_repository}," + 
-    "\r\n\tdata_set_handle: #{req.params.dataset_repository}"
+  console.log "[DATA_SERVER] data set synchronize: \r\n\tkrake_handle: #{req.params.data_repository},\r\n\tdata_set_handle: #{req.params.dataset_repository}"
 
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.consolidateBatches req.params.data_repository, 2, ()=>
