@@ -89,86 +89,175 @@ describe "DataSetController", ->
         expect(results[1]).toEqual "2015-03-22 00:00:00"
         done()
 
+  describe "clearAll", ->
+    beforeEach (done)->
+
+      @d1 = 
+        "drug bank"         : "drug day 1"
+        "drug name"         : "drug name day 1"
+        "pingedAt"          : "2015-03-22 00:00:00"
+        "createdAt"         : "2015-03-22 00:00:00"
+        "updatedAt"         : "2015-03-22 00:00:00"
+
+      @d2 = 
+        "drug bank"         : "drug day 2"
+        "drug name"         : "drug name day 2"
+        "pingedAt"          : "2015-03-23 00:00:00"
+        "createdAt"         : "2015-03-23 00:00:00"
+        "updatedAt"         : "2015-03-23 00:00:00"
+
+      @d3 = 
+        "drug bank"         : "drug day 3"
+        "drug name"         : "drug name day 3"
+        "pingedAt"          : "2015-03-24 00:00:00"
+        "createdAt"         : "2015-03-24 00:00:00"
+        "updatedAt"         : "2015-03-24 00:00:00"
+
+      @ds1 = 
+        "drug bank"         : "drug day 1s"
+        "drug name"         : "drug name day 1"
+        "pingedAt"          : "2015-03-22 00:00:00"
+        "createdAt"         : "2015-03-22 00:00:00"
+        "updatedAt"         : "2015-03-22 00:00:00"
+        "datasource_handle" : "1_data_source_1111111es"
+
+      @ds2 = 
+        "drug bank"         : "drug day 2s"
+        "drug name"         : "drug name day 2"
+        "pingedAt"          : "2015-03-23 00:00:00"
+        "createdAt"         : "2015-03-23 00:00:00"
+        "updatedAt"         : "2015-03-23 00:00:00"
+        "datasource_handle" : "1_data_source_1111111es"
+
+      @ds3 = 
+        "drug bank"         : "drug day 3s"
+        "drug name"         : "drug name day 3"
+        "pingedAt"          : "2015-03-24 00:00:00"
+        "createdAt"         : "2015-03-24 00:00:00"
+        "updatedAt"         : "2015-03-24 00:00:00"
+        "datasource_handle" : "1_data_source_1111111es"
+
+      @d1_q = @km.getInsertStatement(@d1)
+      @d2_q = @km.getInsertStatement(@d2)
+      @d3_q = @km.getInsertStatement(@d3)
+
+      @ds1_q = @ksm.getInsertStatement(@ds1)
+      @ds2_q = @ksm.getInsertStatement(@ds2)
+      @ds3_q = @ksm.getInsertStatement(@ds3)
+
+      done()
+
+    it "should clear all records belonging to data source", (done)->
+      queries = [
+        @d1_q, 
+        @d2_q, 
+        @d3_q        
+        @ds1_q, 
+        @ds2_q, 
+        @ds3_q
+      ]
+      @dbRepo.query(queries.join(";")).then ()=>
+        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          expect(records.length).toEqual 3
+          @dsc.clearAll @repo1_name, ()=>
+            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+              expect(records.length).toEqual 0
+              done()
+
+
   describe "clearBatches", ->
 
     describe "from same data source", ->
 
       beforeEach (done)->
 
-        d1 = 
+        @d1 = 
           "drug bank"         : "drug day 1"
           "drug name"         : "drug name day 1"
           "pingedAt"          : "2015-03-22 00:00:00"
           "createdAt"         : "2015-03-22 00:00:00"
           "updatedAt"         : "2015-03-22 00:00:00"
 
-        d2 = 
+        @d2 = 
           "drug bank"         : "drug day 2"
           "drug name"         : "drug name day 2"
           "pingedAt"          : "2015-03-23 00:00:00"
           "createdAt"         : "2015-03-23 00:00:00"
           "updatedAt"         : "2015-03-23 00:00:00"
 
-        d3 = 
+        @d3 = 
           "drug bank"         : "drug day 3"
           "drug name"         : "drug name day 3"
           "pingedAt"          : "2015-03-24 00:00:00"
           "createdAt"         : "2015-03-24 00:00:00"
           "updatedAt"         : "2015-03-24 00:00:00"
 
-        ds1 = 
-          "drug bank"         : "drug day 1"
+        @ds1 = 
+          "drug bank"         : "drug day 1s"
           "drug name"         : "drug name day 1"
           "pingedAt"          : "2015-03-22 00:00:00"
           "createdAt"         : "2015-03-22 00:00:00"
           "updatedAt"         : "2015-03-22 00:00:00"
           "datasource_handle" : "1_data_source_1111111es"
 
-        ds2 = 
-          "drug bank"         : "drug day 2"
+        @ds2 = 
+          "drug bank"         : "drug day 2s"
           "drug name"         : "drug name day 2"
           "pingedAt"          : "2015-03-23 00:00:00"
           "createdAt"         : "2015-03-23 00:00:00"
           "updatedAt"         : "2015-03-23 00:00:00"
           "datasource_handle" : "1_data_source_1111111es"
 
-        ds3 = 
-          "drug bank"         : "drug day 3"
+        @ds3 = 
+          "drug bank"         : "drug day 3s"
           "drug name"         : "drug name day 3"
           "pingedAt"          : "2015-03-24 00:00:00"
           "createdAt"         : "2015-03-24 00:00:00"
           "updatedAt"         : "2015-03-24 00:00:00"
           "datasource_handle" : "1_data_source_1111111es"
 
-        queries = []
+        @d1_q = @km.getInsertStatement(@d1)
+        @d2_q = @km.getInsertStatement(@d2)
+        @d3_q = @km.getInsertStatement(@d3)
 
-        queries.push @km.getInsertStatement(d1)
-        queries.push @km.getInsertStatement(d2)
-        queries.push @km.getInsertStatement(d3)
+        @ds1_q = @ksm.getInsertStatement(@ds1)
+        @ds2_q = @ksm.getInsertStatement(@ds2)
+        @ds3_q = @ksm.getInsertStatement(@ds3)
 
-        queries.push @ksm.getInsertStatement(ds1)
-        queries.push @ksm.getInsertStatement(ds2)
-        queries.push @ksm.getInsertStatement(ds3)
-
-        @dbRepo.query(queries.join(";")).then ()=>
-          done()
+        done()
 
       it "should clear all records belonging to data source", (done)->
-        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-          expect(records.length).toEqual 3
-          @dsc.clearBatches @repo1_name, null, ()=>
-            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-              expect(records.length).toEqual 0
-              done()
+        queries = [
+          @ds1_q, 
+          @ds2_q, 
+          @ds3_q
+        ]
+        @dbRepo.query(queries.join(";")).then ()=>
+          @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+            expect(records.length).toEqual 3
+            @dsc.consolidateBatches @repo1_name, null, ()=>
+              @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+                expect(records.length).toEqual 0
+                done()
 
       it "should clear records belonging to the two most recent batches", (done)->
-        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-          expect(records.length).toEqual 3
-          @dsc.clearBatches @repo1_name, 2, ()=>
-            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-              expect(records.length).toEqual 1
-              expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
-              done()
+        queries = [
+          @d1_q,          
+          @d2_q,
+          @d3_q,
+          @ds1_q, 
+          @ds2_q, 
+          @ds3_q
+        ]
+        @dbRepo.query(queries.join(";")).then ()=>
+          @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+            expect(records.length).toEqual 3
+            @dsc.consolidateBatches @repo1_name, 2, ()=>
+              @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+                expect(records.length).toEqual 3
+                selected_rs = records.filter (rec)=> rec["drug bank"] == "drug day 3" || rec["drug bank"] == "drug day 2" 
+                expect(selected_rs.length).toEqual 2
+                done()
 
     describe "from one data source in many", ->
 
@@ -208,10 +297,11 @@ describe "DataSetController", ->
       it "should clear all records belonging to one data source only", (done)->
         @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
           expect(records.length).toEqual 2
-          @dsc.clearBatches @repo1_name, null, ()=>
+          @dsc.consolidateBatches @repo1_name, null, ()=>
             @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-              expect(records.length).toEqual 1
-              expect(records[0].datasource_handle).toEqual @repo2_name
+              expect(records.length).toEqual 2
+              selected_rs = records.filter (rec)=> rec["datasource_handle"] == @repo2_name
+              expect(selected_rs.length).toEqual 1
               done() 
 
   describe "copyBatches", ->
@@ -245,7 +335,7 @@ describe "DataSetController", ->
       @dbRepo.query(queries.join(";")).then ()=>
         @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
           expect(records.length).toEqual 0
-          @dsc.copyBatches @repo1_name, null, ()=>
+          @dsc.consolidateBatches @repo1_name, null, ()=>
             @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
               expect(records.length).toEqual 3
               expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
@@ -286,7 +376,7 @@ describe "DataSetController", ->
       @dbRepo.query(queries.join(";")).then ()=>
         @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
           expect(records.length).toEqual 0
-          @dsc.copyBatches @repo1_name, 2, ()=>
+          @dsc.consolidateBatches @repo1_name, 2, ()=>
             @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
               expect(records.length).toEqual 2
               expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
@@ -307,7 +397,7 @@ describe "DataSetController", ->
 
         @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
           expect(records.length).toEqual 0
-          @dsc.copyBatches @repo1_name, 2, ()=>
+          @dsc.consolidateBatches @repo1_name, 2, ()=>
             @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
               expect(records.length).toEqual 1
               expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
@@ -317,7 +407,7 @@ describe "DataSetController", ->
     it "should not crash when there are not records", (done)->
       @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
         expect(records.length).toEqual 0
-        @dsc.copyBatches @repo1_name, 2, ()=>
+        @dsc.consolidateBatches @repo1_name, 2, ()=>
           @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
             expect(records.length).toEqual 0
             done()

@@ -149,7 +149,7 @@ app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
 app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
   console.log "[DATA_SERVER] #{new Date()} data set disconnect"
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
-    dsc.clearBatches req.params.data_repository, null, ()=>
+    dsc.clearAll req.params.data_repository, ()=>
       res.send {status: "success", message: "disconnected" }
 
 

@@ -35,86 +35,82 @@ class DataSetController
   # @param: callback:function
   #   the function that gets called when the synchronization operations completes
   consolidateBatches : (repo_name, num_of_batches, callback)->
-    @clearBatches repo_name,  num_of_batches, ()=>
-      @copyBatches repo_name,  num_of_batches, ()=>
-        callback && callback()
+    @getRepoBatches repo_name, (batches)=>  
+      batches = batches || []
+      cons_func_call  = "a#{@set_name}_#{repo_name}_consolidate()"
+      clear_statement = @clearBatchesQuery repo_name, batches, num_of_batches
+      copy_statement =  @copyBatchesQuery repo_name, batches, num_of_batches
 
-  clearBatches : (repo_name, num_of_batches, callback)->
-    @getRepoBatches repo_name, (batches)=>
-      if !batches 
-        console.log "[DATA_SET_CONTROLLER] #{new Date()} batches not returned " + 
+      master_statement = "
+        BEGIN ISOLATION LEVEL SERIALIZABLE;\r\n
+          #{clear_statement}
+          #{copy_statement}
+        END;\r\n
+        "
+      console.log master_statement
+
+      @dbRepo.query(master_statement)   
+        .success ()=> 
+          console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records successful" +
+            "\r\n\tdata_set: #{@set_name}" +
+            "\r\n\trepo_name: #{repo_name} "
+          callback?()
+        .error (e)=>
+          console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records failed #{e}" +
+            "\r\n\tERROR: #{e}" +
+            "\r\n\tdata_set: #{@set_name}" +
+            "\r\n\trepo_name: #{repo_name} "            
+
+
+        # @clearBatches repo_name, batches, num_of_batches, ()=>
+        #   @copyBatches repo_name, batches, num_of_batches, ()=>
+        #     callback && callback()
+
+  clearAll : (repo_name, callback)->
+    del_query = @clearBatchesQuery repo_name, []
+    @dbRepo.query(del_query)   
+      .success ()=> 
+        console.log "[DATA_SET_CONTROLLER] #{new Date()} cleared all records successful" +
           "\r\n\tdata_set: #{@set_name}" +
           "\r\n\trepo_name: #{repo_name} "
         callback?()
+      .error (e)=>
+        console.log "[DATA_SET_CONTROLLER] #{new Date()} cleared all records failed #{e}" +
+          "\r\n\tERROR: #{e}" +
+          "\r\n\tdata_set: #{@set_name}" +
+          "\r\n\trepo_name: #{repo_name} "            
 
-      else if batches.length > 0 
 
-        del_query = " DELETE FROM  \"#{@set_name}\" WHERE " +
-          " \"datasource_handle\"='" + repo_name + "' "
+  clearBatchesQuery : (repo_name, batches, num_of_batches)->
+    del_query = " DELETE FROM  \"#{@set_name}\" WHERE \r\n" +
+      " \"datasource_handle\"='" + repo_name + "' \r\n"
 
-        if num_of_batches && num_of_batches > 0
-          batch_and_clause = batches.slice(0,num_of_batches).map((batch)->
-            " \"pingedAt\"='#{batch}' "
-          ).join(" OR ")
-          del_query += " AND ( #{batch_and_clause} )"
+    if batches.length > 0 && num_of_batches && num_of_batches > 0 
+      batch_and_clause = batches.slice(0,num_of_batches).map((batch)->
+        " \"pingedAt\"='#{batch}' \r\n"
+      ).join(" OR ")
+      del_query += " AND (\r\n#{batch_and_clause} )"
 
-        @dbRepo.query(del_query)
-          .success ()=> 
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} clear batch successful " + 
-              "\r\n\tdata_set: #{@set_name}" +
-              "\r\n\trepo_name: #{repo_name} "
+    del_query += ";\r\n"
 
-            callback?()
-          .error (e)=>
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} clear batch failed " +
-              "\r\n\tERROR: #{e}" +            
-              "\r\n\tdata_set: #{@set_name}" +
-              "\r\n\trepo_name: #{repo_name} "            
-            callback?()
-      
-      else if batches.length == 0
-        console.log "[DATA_SET_CONTROLLER] #{new Date()} batches empty" +
-              "\r\n\tdata_set: #{@set_name}" +
-              "\r\n\trepo_name: #{repo_name} "
-        callback?()
 
-  copyBatches : (repo_name, num_of_batches, callback)->
-    @getRepoBatches repo_name, (batches)=>
-      if !batches || batches.length == 0
-        callback && callback()
+  copyBatchesQuery : (repo_name, batches, num_of_batches)->
+    if num_of_batches && num_of_batches > 0
+      batches = batches.slice(0,num_of_batches)
 
-      if batches.length > 0
-        if num_of_batches && num_of_batches > 0
-          batches_to_copy = batches.slice(0,num_of_batches)
-        else
-          batches_to_copy = batches
+    query = batches.map((batch)=>
+      'INSERT INTO "' + @set_name + '" ("properties", "datasource_handle", "pingedAt", "createdAt", "updatedAt") ' + "\r\n" +
+      '  SELECT ' + "\r\n" +
+      '    "properties",' + "\r\n" +
+      '    \'' + repo_name + '\' as "datasource_handle",' + "\r\n" +
+      '    \'' + batch + '\' as "pingedAt",' + "\r\n" +
+      '    \'' + batch + '\' as "createdAt",' + "\r\n" +
+      '    \'' + batch + '\' as "updatedAt"' + "\r\n" +
+      '  FROM "' + repo_name + '" ' + "\r\n" +
+      '  WHERE ' + "\r\n" +
+      '   "pingedAt" = \'' + batch + '\' ;'+ "\r\n"
 
-        query = batches_to_copy.map((batch)=>
-          'INSERT INTO "' + @set_name + '" ("properties", "datasource_handle", "pingedAt", "createdAt", "updatedAt") ' +
-          '  SELECT ' +
-          '    "properties",' +
-          '    \'' + repo_name + '\' as "datasource_handle",' +
-          '    \'' + batch + '\' as "pingedAt",' +
-          '    \'' + batch + '\' as "createdAt",' +
-          '    \'' + batch + '\' as "updatedAt"' +
-          '  FROM "' + repo_name + '" ' +
-          '  WHERE ' +
-          '   "pingedAt" = \'' + batch + '\' ;'
-
-        ).join("\n\n")
-
-        @dbRepo.query(query)
-          .success ()=> 
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} copy of records successful" +
-              "\r\n\tdata_set: #{@set_name}" +
-              "\r\n\trepo_name: #{repo_name} "
-            callback?()
-          .error (e)=>
-            console.log "[DATA_SET_CONTROLLER] #{new Date()} copy of records failed #{e}" +
-              "\r\n\tERROR: #{e}" +
-              "\r\n\tdata_set: #{@set_name}" +
-              "\r\n\trepo_name: #{repo_name} "            
-
+    ).join("\n\n")
 
 
 

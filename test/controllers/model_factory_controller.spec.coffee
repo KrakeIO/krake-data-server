@@ -60,8 +60,8 @@ describe "ModelFactoryController", ->
     @dbSystem.sync({force: true}).success ()=>
       @mfc = new ModelFactoryController @dbSystem, ()=>
         @Krake.create({ content: krake_definition, handle: @repo_name})
-        @DataSet.create({ handle: @set_name, name: @set_name })
-        done()
+          .then ()=> @DataSet.create({ handle: @set_name, name: @set_name })
+          .then ()=> done()
 
   it "should indicate true if a handle belong to a krake", (done)->
     @mfc.isKrake @repo_name, (result)=>
