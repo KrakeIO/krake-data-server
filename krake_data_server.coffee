@@ -74,7 +74,7 @@ app.get '/env', (req, res)->
 
 # @Description : clears all the cache generated for table
 app.get '/:data_repository/clear_cache', (req, res)=>
-  console.log "[DATA_SERVER] clear cache"
+  console.log "[DATA_SERVER] #{new Date()} clear cache — #{req.params.data_repository}"
   cm.clearCache req.params.data_repository, (err, status)=>
     if err
       res.send {status: "failed", error: err}
@@ -86,7 +86,7 @@ app.get '/:data_repository/schema', (req, res)=>
   data_repository = req.params.data_repository  
   mfc.isKrake data_repository, (result)=>
     result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
-      console.log "[DATA_SERVER] data source schema"
+      console.log "[DATA_SERVER] #{new Date()} data source schema — #{req.params.data_repository}"
       response = 
         columns:       km.columns || []
         url_columns:   km.url_columns || []
@@ -95,7 +95,7 @@ app.get '/:data_repository/schema', (req, res)=>
 
   mfc.isDataSet data_repository, (result)=>
     result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
-      console.log "[DATA_SERVER] data set schema"
+      console.log "[DATA_SERVER] #{new Date()} data set schema — #{req.params.data_repository}"
       response = 
         columns:       ksm.columns || []
         url_columns:   ksm.url_columns || []
@@ -109,7 +109,7 @@ app.get '/:data_repository/:format', (req, res)=>
 
   mfc.isKrake data_repository, (result)=>  
     result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
-      console.log "[DATA_SERVER] data source query"      
+      console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
         if req.params.format == 'csv'
@@ -120,7 +120,7 @@ app.get '/:data_repository/:format', (req, res)=>
 
   mfc.isDataSet data_repository, (result)=>
     result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
-      console.log "[DATA_SERVER] data set query"
+      console.log "[DATA_SERVER] #{new Date()} data set query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       csm.getCache data_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
         if req.params.format == 'csv'
@@ -132,14 +132,14 @@ app.get '/:data_repository/:format', (req, res)=>
 
 # @Description : Copies all records from data_repository over to dataset_repository
 app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
-  console.log "[DATA_SERVER] data set connect"
+  console.log "[DATA_SERVER] #{new Date()} data set connect — #{req.params.dataset_repository}"
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.consolidateBatches req.params.data_repository, null, ()=>
       res.send {status: "success", message: "connected" }
 
 # @Description : Updates the records from data_repository over to dataset_repository
 app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
-  console.log "[DATA_SERVER] data set synchronize: \r\n\tkrake_handle: #{req.params.data_repository},\r\n\tdata_set_handle: #{req.params.dataset_repository}"
+  console.log "[DATA_SERVER] #{new Date()} data set synchronize: \r\n\tkrake_handle: #{req.params.data_repository},\r\n\tdata_set_handle: #{req.params.dataset_repository}"
 
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.consolidateBatches req.params.data_repository, 2, ()=>
@@ -147,7 +147,7 @@ app.get '/synchronize/:data_repository/:dataset_repository', (req, res)=>
 
 # @Description : Removes all records belonging to data_repository from dataset_repository
 app.get '/disconnect/:data_repository/:dataset_repository', (req, res)=>
-  console.log "[DATA_SERVER] data set disconnect"
+  console.log "[DATA_SERVER] #{new Date()} data set disconnect"
   dsc = new DataSetController dbSystem, dbRepo, req.params.dataset_repository, ()=>  
     dsc.clearBatches req.params.data_repository, null, ()=>
       res.send {status: "success", message: "disconnected" }

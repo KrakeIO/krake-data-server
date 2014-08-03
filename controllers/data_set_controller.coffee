@@ -42,22 +42,31 @@ class DataSetController
   clearBatches : (repo_name, num_of_batches, callback)->
     @getRepoBatches repo_name, (batches)=>
       if !batches 
+        console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : Batches is false for #{repo_name}"
         callback?()
 
       else if batches.length > 0 
-        del_query = " DELETE FROM  \"#{@set_name}\" " +
-          " WHERE " +
-          " \"datasource_handle\"='" + repo_name + "'"
+
+        del_query = " DELETE FROM  \"#{@set_name}\" WHERE " +
+          " \"datasource_handle\"='" + repo_name + "' "
+
         if num_of_batches && num_of_batches > 0
           batch_and_clause = batches.slice(0,num_of_batches).map((batch)->
-            " \"pingedAt\"='#{batch}' "          
+            " \"pingedAt\"='#{batch}' "
           ).join(" OR ")
           del_query += " AND ( #{batch_and_clause} )"
 
-        @dbRepo.query(del_query).success ()=> callback?()
+        @dbRepo.query(del_query)
+          .success ()=> 
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : clear batch of #{repo_name} successful "
+            callback?()
+          .error (e)=>
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : clear batch of #{repo_name} failed : #{error}"
+            callback?()
       
       else if batches.length == 0
-        callback && callback()
+        console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : Batches Empty for #{repo_name}"
+        callback?()
 
   copyBatches : (repo_name, num_of_batches, callback)->
     @getRepoBatches repo_name, (batches)=>
@@ -84,8 +93,12 @@ class DataSetController
 
         ).join("\n\n")
 
-        @dbRepo.query(query).success ()->
-          callback && callback()
+        @dbRepo.query(query)
+          .success ()=> 
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : copy of records from #{repo_name} successful"
+            callback?()
+          .error (e)=>
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} #{@set_name} : copy of records from #{repo_name} failed #{e}"
 
 
 
