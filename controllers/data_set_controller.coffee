@@ -42,21 +42,19 @@ class DataSetController
   clearBatches : (repo_name, num_of_batches, callback)->
     @getRepoBatches repo_name, (batches)=>
       if !batches 
-        callback && callback()
+        callback?()
 
-      else if batches.length > 0
-        del_query = 'delete from  "'+ @set_name + '"' +
-          " where " +
-          "\"datasource_handle\"='" + repo_name + "'"
-
+      else if batches.length > 0 
+        del_query = " DELETE FROM  \"#{@set_name}\" " +
+          " WHERE " +
+          " \"datasource_handle\"='" + repo_name + "'"
         if num_of_batches && num_of_batches > 0
           batch_and_clause = batches.slice(0,num_of_batches).map((batch)->
-            "\"pingedAt\"='" + batch + "'"          
-          ).join(" or ")
-          del_query += " and (" + batch_and_clause + ")"
+            " \"pingedAt\"='#{batch}' "          
+          ).join(" OR ")
+          del_query += " AND ( #{batch_and_clause} )"
 
-        @dbRepo.query(del_query).success ()->
-          callback && callback()
+        @dbRepo.query(del_query).success ()=> callback?()
       
       else if batches.length == 0
         callback && callback()

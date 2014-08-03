@@ -44,7 +44,7 @@ class CacheController
   clearCache: (repo_name, callback)->
     callback && callback null, true
     fs.readdirSync(@cachePath).forEach (file_name)=>
-      if file_name.indexOf(repo_name) != -1
+      if file_name.indexOf(repo_name) != -1 && file_name.indexOf("html") != -1
         file_path = @cachePath + file_name
         fs.unlinkSync file_path
 
