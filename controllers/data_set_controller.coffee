@@ -47,24 +47,29 @@ class DataSetController
           #{copy_statement}
         END;\r\n
         "
-      # console.log master_statement
 
-      @dbRepo.query(master_statement)   
-        .success ()=> 
-          console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records successful" +
-            "\r\n\tdata_set: #{@set_name}" +
-            "\r\n\trepo_name: #{repo_name} "
-          callback?()
-        .error (e)=>
-          console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records failed #{e}" +
-            "\r\n\tERROR: #{e}" +
-            "\r\n\tdata_set: #{@set_name}" +
-            "\r\n\trepo_name: #{repo_name} "            
+      commitIt = (retries)=>
+        retries = retries || 0
+        if retries == 3 
+          return callback?()
 
+        console.log master_statement
 
-        # @clearBatches repo_name, batches, num_of_batches, ()=>
-        #   @copyBatches repo_name, batches, num_of_batches, ()=>
-        #     callback && callback()
+        @dbRepo.query(master_statement)   
+          .success ()=> 
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records successful" +
+              "\r\n\tdata_set: #{@set_name}" +
+              "\r\n\trepo_name: #{repo_name} "
+            callback?()
+          .error (e)=>
+            console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records failed #{e}" +
+              "\r\n\tERROR: #{e}" +
+              "\r\n\tdata_set: #{@set_name}" +
+              "\r\n\trepo_name: #{repo_name} " +
+              "\r\n\tretries: #{retries} "
+            commitIt (retries + 1)
+
+      commitIt 0
 
   clearAll : (repo_name, callback)->
     del_query = @clearBatchesQuery repo_name, []
