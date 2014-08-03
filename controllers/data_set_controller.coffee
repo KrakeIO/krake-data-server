@@ -50,10 +50,7 @@ class DataSetController
 
       commitIt = (retries)=>
         retries = retries || 0
-        if retries == 3 
-          return callback?()
-
-        console.log master_statement
+        if retries == 3 then return callback?()
 
         @dbRepo.query(master_statement)   
           .success ()=> 
