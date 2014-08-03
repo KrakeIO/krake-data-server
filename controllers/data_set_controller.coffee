@@ -42,7 +42,7 @@ class DataSetController
       copy_statement =  @copyBatchesQuery repo_name, batches, num_of_batches
 
       master_statement = "
-        BEGIN ISOLATION LEVEL SERIALIZABLE;\r\n
+        BEGIN ISOLATION LEVEL READ UNCOMMITTED;\r\n
           #{clear_statement}
           #{copy_statement}
         END;\r\n
