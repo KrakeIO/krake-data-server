@@ -6,7 +6,7 @@ kson = require 'kson'
 
 class CacheController
   constructor: (@cachePath, @dbRepo, @modelBody)->
-    @csvDelimiter = "  DELIMITER ';' "
+    @csvDelimiter = "  DELIMITER ',' "
     @createCacheFolder()
 
   createCacheFolder: ()->
