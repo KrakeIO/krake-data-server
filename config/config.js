@@ -30,6 +30,6 @@
       "database" : "scraped_data_repo"
     },
     "userDataDB" : "dev_panel",
-    "cachePath" : "/tmp/krake_data_cache/"
+    "cachePath" : "/tmp/"
   }
 }
