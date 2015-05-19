@@ -3,6 +3,7 @@ crypto = require 'crypto'
 exec = require('child_process').exec
 fs = require 'fs'
 kson = require 'kson'
+Q = require 'q'
 
 class CacheController
   constructor: (@cachePath, @dbRepo, @modelBody)->
@@ -25,16 +26,66 @@ class CacheController
 
     columns = krake.columns
     urlColumns = krake.url_columns
-    query = krake.getSelectStatement query_obj
+    @getQuery(repo_name, krake, query_obj)
+      .then (query)=>
+        cacheKey = @getCacheKey repo_name, query
+        pathToFile = @cachePath + cacheKey + "." + format
+            
+        if (!fs.existsSync(pathToFile) || query_obj.$fresh) then @generateCache repo_name, columns, urlColumns, query, format, (err)->
+          callback && callback err, pathToFile
+          
+        else 
+          callback && callback null, pathToFile
 
-    cacheKey = @getCacheKey repo_name, query
-    pathToFile = @cachePath + cacheKey + "." + format
+
+
+  # translates the query object to a valid SQL query string
+  getQuery: (repo_name, krake, query_obj)->
+    deferred = Q.defer()
+
+    if query_obj["$where"] || query_obj["$select"]
+      query = krake.getSelectStatement query_obj
+      deferred.resolve query
+    else
+      @getLatestBatch(krake).then (latest_batch)=>
+        query_obj = 
+          '$where': [ { pingedAt: latest_batch } ]
+          '$fresh': true
+        query = krake.getSelectStatement query_obj
+        deferred.resolve query
+
+    deferred.promise
+
+
+
+  # gets the latest batch date
+  #
+  # returns Q.promise
+  getLatestBatch: (krake)->
+    deferred = Q.defer()
+    query_obj =
+      "$select" : [{
+        "$distinct" : "pingedAt"
+      }],
+      "$order" : [{
+        "$desc" : "pingedAt"
+      }],
+      "$fresh" : true,
+      "$limit" : 1
+
+    query = krake.getSelectStatement query_obj
+    @dbRepo.query(query).success(
+      (rows)=>
+        if rows.length == 1
+          deferred.resolve rows[0]["pingedAt"]
+        else
+          deferred.resolve ""
         
-    if (!fs.existsSync(pathToFile) || query_obj.$fresh) then @generateCache repo_name, columns, urlColumns, query, format, (err)->
-      callback && callback err, pathToFile
-      
-    else 
-      callback && callback null, pathToFile
+    ).error(
+      (e)=>
+        deferred.reject(new Error(e))
+    )
+    deferred.promise    
 
 
 
@@ -47,6 +98,7 @@ class CacheController
         file_path = @cachePath + file_name
         fs.unlinkSync file_path
     callback?()
+
 
   # @Description : generates a cached record
   # @param : repo_name:String

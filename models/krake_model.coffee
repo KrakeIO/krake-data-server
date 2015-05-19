@@ -82,7 +82,6 @@ class KrakeModel
         '"' + column.replace(/"/, '&#34;').replace(/'/, '&#39;') + '" => "' + data_obj[column].replace(/"/, '&#34;').replace(/'/, '&#39;') + '"'
       ).join(",")
 
-
   getSelectStatement : (query_obj)->
     query_string =  'SELECT ' + @selectClause(query_obj) + 
                     ' FROM "' + @repo_name + '" ' + 

@@ -16,6 +16,7 @@
     , "kson": "https://github.com/KrakeIO/kson/tarball/master"
     , "pg" : ""
     , "pg-hstore" : ""
+    , "q" : ""
     , "rimraf": ""
     , "sequelize": "2.0"
     , "unescape-stream": "0.0.2"
