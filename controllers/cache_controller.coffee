@@ -153,7 +153,9 @@ class CacheController
     fs.appendFileSync pathToFile, "<table class='table' id='data_table'>\r\n"
     
     fs.appendFileSync pathToFile, "\t<tr id='data-table-header'>\r\n"
+    class_names = []
     for y in [0...columns.length]
+      class_names.push columns[y]
       fs.appendFileSync pathToFile, "\t\t<th>" + columns[y] + "</th>\r\n"
       
     fs.appendFileSync pathToFile, "\t</tr>\r\n"
@@ -168,10 +170,10 @@ class CacheController
         for y in [0...columns.length]
           index = columns[y]
           if urlColumns.indexOf(index) < 0          
-            fs.appendFileSync pathToFile, "\t\t<td>" + results[i][index] + "</td>\r\n"
+            fs.appendFileSync pathToFile, "\t\t<td class='"+class_names[y]+"'>" + results[i][index] + "</td>\r\n"
             
           else          
-            fs.appendFileSync pathToFile, "\t\t<td><a target='_blank' rel='nofollow' href='" +
+            fs.appendFileSync pathToFile, "\t\t<td class='"+class_names[y]+"'><a target='_blank' rel='nofollow' href='" +
               results[i][index] + "'>" + results[i][index] + "</a></td>\r\n" 
             
         fs.appendFileSync pathToFile,  "\t</tr>\r\n"
