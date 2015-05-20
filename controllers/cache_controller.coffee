@@ -155,7 +155,7 @@ class CacheController
     fs.appendFileSync pathToFile, "\t<tr id='data-table-header'>\r\n"
     class_names = []
     for y in [0...columns.length]
-      class_names.push columns[y]
+      class_names.push columns[y].replace(/\s+/g, '_').toLowerCase()
       fs.appendFileSync pathToFile, "\t\t<th>" + columns[y] + "</th>\r\n"
       
     fs.appendFileSync pathToFile, "\t</tr>\r\n"
