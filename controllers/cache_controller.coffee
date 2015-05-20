@@ -26,7 +26,7 @@ class CacheController
 
     columns = krake.columns
     urlColumns = krake.url_columns
-    @getQuery(repo_name, krake, query_obj)
+    @getSqlQuery(repo_name, krake, query_obj)
       .then (query)=>
         cacheKey = @getCacheKey repo_name, query
         pathToFile = @cachePath + cacheKey + "." + format
@@ -40,7 +40,7 @@ class CacheController
 
 
   # translates the query object to a valid SQL query string
-  getQuery: (repo_name, krake, query_obj)->
+  getSqlQuery: (repo_name, krake, query_obj)->
     deferred = Q.defer()
 
     if query_obj["$where"] || query_obj["$select"]
