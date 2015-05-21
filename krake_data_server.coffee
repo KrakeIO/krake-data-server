@@ -81,7 +81,7 @@ app.get '/:data_repository/clear_cache', (req, res)=>
     else
       res.send {status: "success"}
 
-app.get '/:data_repository/overview', (req, res)=>
+app.get '/:data_repository/directory', (req, res)=>
   data_repository = req.params.data_repository
   console.log "[DATA_SERVER] #{new Date()} data source overview — #{data_repository}"
 
