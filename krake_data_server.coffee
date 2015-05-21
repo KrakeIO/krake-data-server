@@ -81,6 +81,36 @@ app.get '/:data_repository/clear_cache', (req, res)=>
     else
       res.send {status: "success"}
 
+app.get '/:data_repository/overview', (req, res)=>
+  data_repository = req.params.data_repository
+  console.log "[DATA_SERVER] #{new Date()} data source overview — #{data_repository}"
+
+  km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+
+  cm.getLatestCount(km).then (response)=>
+    total_pages = Math.ceil(response.count / 1000)
+    page_urls = []
+    
+    [0...total_pages].forEach (page_num)=>
+      offset = page_num * 1000
+      query = 
+        "$limit": 1000
+        "$offset": page_num
+        "$where": [{
+          "$pingedAt": response.batch
+        }]
+        "$fresh": true
+      url = "/#{data_repository}/html?q=" + JSON.stringify(query)
+      page_urls.push url
+
+    data = 
+      count: response.count
+      total_pages: total_pages
+      page_urls: page_urls
+
+    res.render 'overview', locals: data
+
+
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/schema', (req, res)=>
   data_repository = req.params.data_repository  
@@ -100,7 +130,7 @@ app.get '/:data_repository/schema', (req, res)=>
         columns:       ksm.columns || []
         url_columns:   ksm.url_columns || []
         index_columns: ksm.index_columns || []
-      res.send response     
+      res.send response
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>

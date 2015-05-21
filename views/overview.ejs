@@ -1,0 +1,13 @@
+<p>
+  Total number of records: <%= count %>
+</p>
+<p>
+  Total number of pages: <%= total_pages %>
+</p>
+<% page_urls.forEach( function(url, index){ %>
+  <p>
+    <a href="<%= url %>"> Page <%=index %> </a>
+  </p>
+<% } ); %> 
+
+  
