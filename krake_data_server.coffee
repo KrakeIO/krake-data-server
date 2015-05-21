@@ -95,12 +95,12 @@ app.get '/:data_repository/overview', (req, res)=>
       offset = page_num * 1000
       query = 
         "$where": [{
-          "$pingedAt": response.batch
+          "pingedAt": response.batch
         }]
         "$fresh": true
         "$limit": 1000
         "$offset": page_num
-                
+
       url = "/#{data_repository}/html?q=" + JSON.stringify(query)
       page_urls.push url
 
