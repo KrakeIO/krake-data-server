@@ -60,8 +60,19 @@ class CacheController
   getLatestCount: (krake)->
     deferred = Q.defer()
     @getLatestBatch(krake).then (latest_batch)=>
+      if latest_batch
+        @getCountForBatch krake, latest_batch, deferred
+      else
+        deferred.resolve({
+            batch: "None", 
+            count: 0
+          })
 
-      query_obj =
+    deferred.promise
+
+  # gets the total records count for a specific batch
+  getCountForBatch: (krake, latest_batch, deferred)=>
+    query_obj =
         $select: [{
           $count: "pingedAt"
         }],
@@ -70,27 +81,25 @@ class CacheController
         }],
         $fresh: true
 
-      query = krake.getSelectStatement query_obj
+    query = krake.getSelectStatement query_obj
 
-      @dbRepo.query(query).success(
-        (rows)=>
-          if rows.length == 1
-            deferred.resolve({
-              batch: latest_batch, 
-              count: rows[0]["pingedAt"]
-            })
-          else
-            deferred.resolve({
-              batch: latest_batch, 
-              count: 0            
-            })
-          
-      ).error(
-        (e)=>
-          deferred.reject(new Error(e))
-      )
-
-    deferred.promise
+    @dbRepo.query(query).success(
+      (rows)=>
+        if rows.length == 1
+          deferred.resolve({
+            batch: latest_batch, 
+            count: rows[0]["pingedAt"]
+          })
+        else
+          deferred.resolve({
+            batch: latest_batch, 
+            count: 0            
+          })
+        
+    ).error(
+      (e)=>
+        deferred.reject(new Error(e))
+    )    
 
 
   # gets the latest batch date
