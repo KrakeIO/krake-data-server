@@ -90,16 +90,17 @@ app.get '/:data_repository/overview', (req, res)=>
   cm.getLatestCount(km).then (response)=>
     total_pages = Math.ceil(response.count / 1000)
     page_urls = []
-    
+
     [0...total_pages].forEach (page_num)=>
       offset = page_num * 1000
       query = 
-        "$limit": 1000
-        "$offset": page_num
         "$where": [{
           "$pingedAt": response.batch
         }]
         "$fresh": true
+        "$limit": 1000
+        "$offset": page_num
+                
       url = "/#{data_repository}/html?q=" + JSON.stringify(query)
       page_urls.push url
 
