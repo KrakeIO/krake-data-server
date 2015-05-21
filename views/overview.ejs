@@ -1,12 +1,13 @@
+
 <p>
-  Total number of records: <%= count %>
-</p>
-<p>
-  Total number of pages: <%= total_pages %>
+  Total number of records: <b><%= count %></b>,<br>
+  Total number of pages: <b><%= total_pages %></b>
 </p>
 <% page_urls.forEach( function(url, index){ %>
   <p>
-    <a class="directory-page" href="<%= url %>"> Page <%=index %> </a>
+    <a class="directory-page" href="<%= url %>"> 
+      Page <%= index + 1 %> - records <%= index * limit %> to <%= (index + 1) * limit %> 
+    </a>
   </p>
 <% } ); %> 
 

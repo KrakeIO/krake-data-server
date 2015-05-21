@@ -108,6 +108,7 @@ app.get '/:data_repository/directory', (req, res)=>
       count: response.count
       total_pages: total_pages
       page_urls: page_urls
+      limit: 1000
 
     res.render 'overview', locals: data
 
