@@ -133,7 +133,7 @@ app.get '/:data_repository/:format', (req, res)=>
   unescape        = new UnescapeStream()
   
   mfc.getModel data_repository, (FactoryModel)=>
-    result && km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
+    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
