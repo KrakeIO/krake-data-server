@@ -85,7 +85,7 @@ app.get '/:data_repository/directory', (req, res)=>
   data_repository = req.params.data_repository
   console.log "[DATA_SERVER] #{new Date()} data source overview — #{data_repository}"
 
-  km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+  km = new KrakeModel dbSystem, data_repository, [], (status, error_message)=>
 
   cm.getLatestCount(km).then (response)=>
     total_pages = Math.ceil(response.count / 1000)
@@ -116,8 +116,9 @@ app.get '/:data_repository/directory', (req, res)=>
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/schema', (req, res)=>
   data_repository = req.params.data_repository  
-  mfc.isKrake data_repository, (result)=>
-    result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+
+  mfc.getModel data_repository, (FactoryModel)=>
+    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source schema — #{req.params.data_repository}"
       response = 
         columns:       km.columns || []
@@ -125,22 +126,14 @@ app.get '/:data_repository/schema', (req, res)=>
         index_columns: km.index_columns || []      
       res.send response
 
-  mfc.isDataSet data_repository, (result)=>
-    result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
-      console.log "[DATA_SERVER] #{new Date()} data set schema — #{req.params.data_repository}"
-      response = 
-        columns:       ksm.columns || []
-        url_columns:   ksm.url_columns || []
-        index_columns: ksm.index_columns || []
-      res.send response
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
   data_repository = req.params.data_repository
   unescape        = new UnescapeStream()
-
-  mfc.isKrake data_repository, (result)=>  
-    result && km = new KrakeModel dbSystem, data_repository, (status, error_message)=>
+  
+  mfc.getModel data_repository, (FactoryModel)=>
+    result && km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
@@ -150,16 +143,6 @@ app.get '/:data_repository/:format', (req, res)=>
           .pipe unescape
           .pipe res
 
-  mfc.isDataSet data_repository, (result)=>
-    result && ksm = new KrakeSetModel dbSystem, data_repository, [], (status, error_message)=>
-      console.log "[DATA_SERVER] #{new Date()} data set query — #{data_repository}"
-      query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      csm.getCache data_repository, ksm, query_obj, req.params.format, (error, path_to_cache)=>
-        if req.params.format == 'csv'
-          res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
-        fs.createReadStream(path_to_cache)
-          .pipe unescape
-          .pipe res
 
 
 # @Description : Copies all records from data_repository over to dataset_repository

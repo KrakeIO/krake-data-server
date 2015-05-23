@@ -54,30 +54,30 @@ describe "KrakeModel", ->
       .success ()=>
         @Krake.create({ content: krake_definition, handle: @repo_name}).success ()=>
           # instantiates a krake model
-          @km = new KrakeModel dbSystem, @repo_name, ()->
+          @km = new KrakeModel dbSystem, @repo_name, [], ()->
             done()
 
   it "should not crash when krake content is invalid", (done)->
     promise1 = @Krake.create({ content: "", handle: @repo_name})
     promise1.then =>
-      km = new KrakeModel @dbSystem, @repo_name, (is_valid)->
+      km = new KrakeModel @dbSystem, @repo_name, [], (is_valid)->
         expect(is_valid).toBe true      
         done()
 
   it "should return status as true when repository is valid", (done)->
-    km = new KrakeModel dbSystem, @repo_name, (status, error_msg)->
+    km = new KrakeModel dbSystem, @repo_name, [], (status, error_msg)->
       expect(status).toEqual true
       expect(error_msg).toEqual null
       done()
 
   it "should return status as false when repository is invalid", (done)->
-    km = new KrakeModel dbSystem, "invalid table name", (status, error_msg)->
+    km = new KrakeModel dbSystem, "invalid table name", [], (status, error_msg)->
       expect(status).toEqual false
       expect(error_msg).toEqual 'Sorry. The data repository you were looking for does not exist'
       done()
 
   it "should have columns", (done)->
-    km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
+    km = new KrakeModel dbSystem, @repo_name, [], (success, error_msg)->
       expect(km.columns.length).toEqual 9
       done()
 

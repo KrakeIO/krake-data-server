@@ -55,7 +55,7 @@ describe "DataSetController", ->
       .run()
       .success ()=>
         @Krake.create({ content: krake_definition, handle: @repo1_name}).then ()=>
-            @km = new KrakeModel @dbSystem, @repo1_name, ()=>
+            @km = new KrakeModel @dbSystem, @repo1_name, [], ()=>
               @ksm = new KrakeSetModel @dbSystem, @set_name, @km.columns, ()=>
                 @dsc = new DataSetController @dbSystem, @dbRepo, @set_name, ()=>
                 done()

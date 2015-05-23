@@ -1,6 +1,8 @@
 schemaConfig            = require('krake-toolkit').schema.config 
 krakeSchema             = require('krake-toolkit').schema.krake
 dataSetSchema           = require('krake-toolkit').schema.data_set
+KrakeModel              = require './../models/krake_model'
+KrakeSetModel           = require './../models/krake_set_model'
 
 class ModelFactoryController
 
@@ -37,5 +39,24 @@ class ModelFactoryController
       .error (error)=>
         console.log "Error: %s ", error
         callback && callback(false)
+
+  # Given a handle determines if the handle references a Krake or a DataSet
+  #   thereafter returning the corresponding Model
+  #
+  # Params:
+  #   handle: String
+  #   callback: Function
+  #     Model -> Krake || KrakeSet
+  #
+  getModel: (handle, callback)->
+    @isKrake handle, (found)=>
+      if !found then return
+      console.log "\n[DATA_SERVER] #{new Date()} data source type detected — #{handle}"
+      callback KrakeModel
+
+    @isDataSet handle, (found)=>
+      if !found then return
+      console.log "\n[DATA_SERVER] #{new Date()} data set type detected — #{handle}"
+      callback KrakeSetModel
 
 module.exports = ModelFactoryController

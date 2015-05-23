@@ -11,7 +11,7 @@ class DataSetController
       callback && callback()
 
   getRepoBatches : (repo_name, callback)->
-    @km = new KrakeModel @dbSystem, repo_name, (status, error_message)=>
+    @km = new KrakeModel @dbSystem, repo_name, [], (status, error_message)=>
       query_string = @km.getSelectStatement 
         $select : [{ $distinct : "pingedAt" }]
         $order: [{ $desc: "pingedAt" }]

@@ -51,7 +51,7 @@ describe "CacheController with KrakeModel", ->
       @cm = new CacheController @test_folder, dbRepo, recordBody
       @Records = dbRepo.define @repo_name, recordBody  
       @Records.sync({force: true}).success ()=>
-        @km = new KrakeModel dbSystem, @repo_name, (success, error_msg)->
+        @km = new KrakeModel dbSystem, @repo_name, [], (success, error_msg)->
           done()
 
   afterEach (done)->

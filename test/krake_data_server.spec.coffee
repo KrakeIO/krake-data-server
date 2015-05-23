@@ -72,7 +72,7 @@ describe "krake data server", ->
   #   beforeEach (done)->
   #     @test_folder = "/tmp/test/"
   #     @cm = new CacheController @test_folder, dbRepo, recordBody
-  #     @km = new KrakeModel dbSystem, @repo_name, ()->
+  #     @km = new KrakeModel dbSystem, @repo_name,  [], ()->
   #       request @test_server + @repo_name + '/clear_cache', (error, response, body)->
   #         done()
 
@@ -126,7 +126,7 @@ describe "krake data server", ->
         .run()
         .success ()=>
           @Krake.create({ content: krake_definition, handle: @repo1_name}).success ()=>
-            @km = new KrakeModel dbSystem, @repo1_name, ()=>
+            @km = new KrakeModel dbSystem, @repo1_name, [], ()=>
               @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
                 d1 = 
@@ -195,7 +195,7 @@ describe "krake data server", ->
         .run()
         .success ()=>
           @Krake.create({ content: krake_definition, handle: @repo1_name}).success ()=>
-            @km = new KrakeModel dbSystem, @repo1_name, ()=>
+            @km = new KrakeModel dbSystem, @repo1_name, [], ()=>
               @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
                 d1 = 
@@ -264,7 +264,7 @@ describe "krake data server", ->
 
           @Krake.create({ content: krake_definition, handle: @repo1_name}).success ()=>
             @Krake.create({ content: krake_definition, handle: @repo2_name}).success ()=>
-              @km = new KrakeModel dbSystem, @repo1_name, ()=>
+              @km = new KrakeModel dbSystem, @repo1_name, [], ()=>
                 @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
                   d1 = 

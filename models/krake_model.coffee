@@ -4,7 +4,7 @@ QueryHelper = ktk.query.helper
 
 class KrakeModel
   
-  constructor : (@dbSystem, @repo_name, callback)->
+  constructor : (@dbSystem, @repo_name, @columns, callback)->
     @hstore_col = "properties"
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
     @common_cols = @status_cols.concat([@hstore_col]) 

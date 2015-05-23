@@ -66,6 +66,7 @@ describe "krake data server", ->
 
 
     it "should return all the columns for data source", (done)->
+      console.log "Line 69"
       d1 = new Date()
       api_location = @test_server + @repo_name + '/schema'
       request api_location, (error, response, body)=>
@@ -110,6 +111,7 @@ describe "krake data server", ->
           done()
 
     it "should return all the columns for data set", (done)->
+      console.log "Line 114"
       api_location = @test_server + @set_name + '/schema'
       request api_location, (error, response, body)=>
         expect(()=>
