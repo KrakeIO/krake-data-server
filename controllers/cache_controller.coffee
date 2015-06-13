@@ -52,10 +52,12 @@ class CacheController
     else
       @getLatestBatch(krake)
         .then (latest_batch)=>
-          console.log "latest batch: #{latest_batch}"
           query_obj = 
-            '$where': [ { pingedAt: latest_batch } ]
-            '$fresh': true
+            '$fresh': true          
+          if latest_batch
+            console.log "latest batch: #{latest_batch}"
+            query_obj['$where'] = [ { pingedAt: latest_batch } ]
+
           query = krake.getSelectStatement query_obj
           deferred.resolve query
 
