@@ -182,6 +182,7 @@ class CacheController
 
       @dbRepo.query(query).success(
         (rows)=>
+          console.log rows
           switch format
             when 'json', 'csv' then callback && callback null
             when 'html'
