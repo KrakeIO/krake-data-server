@@ -164,6 +164,8 @@ class CacheController
         when 'csv'
           query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
 
+      console.log query
+
       @dbRepo.query(query).success(
         (rows)=>
           switch format
