@@ -211,7 +211,7 @@ class CacheController
   # @param : pathToFile:string
   # @param : callback:function()
   writeHtmlToCache : (results, columns, urlColumns, pathToFile, callback)=>
-    results = results.rows
+    results = results[0]
     fs.appendFileSync pathToFile, "<table class='table' id='data_table'>\r\n"
     
     fs.appendFileSync pathToFile, "\t<tr id='data-table-header'>\r\n"
