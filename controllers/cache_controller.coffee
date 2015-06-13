@@ -37,6 +37,9 @@ class CacheController
         else 
           callback && callback null, pathToFile
 
+      .catch (error)=>
+        console.log error
+
 
 
   # translates the query object to a valid SQL query string
@@ -47,12 +50,17 @@ class CacheController
       query = krake.getSelectStatement query_obj
       deferred.resolve query
     else
-      @getLatestBatch(krake).then (latest_batch)=>
-        query_obj = 
-          '$where': [ { pingedAt: latest_batch } ]
-          '$fresh': true
-        query = krake.getSelectStatement query_obj
-        deferred.resolve query
+      @getLatestBatch(krake)
+        .then (latest_batch)=>
+          console.log "latest batch: #{latest_batch}"
+          query_obj = 
+            '$where': [ { pingedAt: latest_batch } ]
+            '$fresh': true
+          query = krake.getSelectStatement query_obj
+          deferred.resolve query
+
+        .catch (error)=>
+          console.log error        
 
     deferred.promise
 
