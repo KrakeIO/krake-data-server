@@ -181,12 +181,12 @@ class CacheController
           query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
 
       @dbRepo.query(query).success(
-        (rows)=>
-          console.log rows
+        (results)=>
+          console.log results
           switch format
             when 'json', 'csv' then callback && callback null
             when 'html'
-              @writeHtmlToCache rows, columns, urlColumns, pathToFile, (status)->
+              @writeHtmlToCache results, columns, urlColumns, pathToFile, (status)->
               callback && callback null              
               
           
@@ -211,8 +211,8 @@ class CacheController
   # @param : urlColumns:array
   # @param : pathToFile:string
   # @param : callback:function()
-  writeHtmlToCache : (rows, columns, urlColumns, pathToFile, callback)=>
-    results = rows
+  writeHtmlToCache : (results, columns, urlColumns, pathToFile, callback)=>
+    results = results.rows
     fs.appendFileSync pathToFile, "<table class='table' id='data_table'>\r\n"
     
     fs.appendFileSync pathToFile, "\t<tr id='data-table-header'>\r\n"
