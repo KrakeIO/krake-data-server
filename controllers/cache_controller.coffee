@@ -60,6 +60,7 @@ class CacheController
           deferred.resolve query
 
         .catch (error)=>
+          console.log "Line 63"
           console.log error        
 
     deferred.promise
