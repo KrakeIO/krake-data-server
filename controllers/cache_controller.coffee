@@ -222,7 +222,7 @@ class CacheController
       fs.appendFileSync pathToFile, "\t\t<th>" + columns[y] + "</th>\r\n"
       
     fs.appendFileSync pathToFile, "\t</tr>\r\n"
-
+    console.log results
     if results
       # iterates through all the columns
       for i in [0...results.length]
