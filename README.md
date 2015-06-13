@@ -313,6 +313,15 @@ CREATE TABLE data_repository_table (
 );
 ```
 
+### Create data cache
+production environment
+```console
+mkdir /tmp/krake_data_cache
+```
+
+Make sure current owner daemon has permissions to read/write from folder
+Make sure postgres user has permissions to read/write from folder
+
 ### Unit test 
 Run the following comming in root location of your project's repository to ensure your setup is working properly
 ```console
