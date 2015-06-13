@@ -128,17 +128,25 @@ class CacheController
 
     query = krake.getSelectStatement query_obj
 
-    @dbRepo.query(query).success(
-      (rows)=>
-        if rows.length == 1
-          deferred.resolve rows[0]["pingedAt"]
-        else
-          deferred.resolve ""
-        
-    ).error(
-      (e)=>
+    model = @dbRepo.define krake.repo_name, @modelBody
+    model.sync()
+      .success ()=>
+        console.log "Sync successful"
+        @dbRepo.query(query).success(
+          (rows)=>
+            if rows.length == 1
+              deferred.resolve rows[0]["pingedAt"]
+            else
+              deferred.resolve ""
+            
+        ).error(
+          (e)=>
+            deferred.reject(new Error(e))
+        )
+      .error (e)=>
+        console.log "Sync failed"
         deferred.reject(new Error(e))
-    )
+
     deferred.promise    
 
 
@@ -163,7 +171,7 @@ class CacheController
   # @param : callback:function(error:string)  
   generateCache: (repo_name, columns, urlColumns, query, format, callback)->
     pathToFile = @cachePath + @getCacheKey(repo_name, query) + "." + format
-    model = @dbRepo.define repo_name, @modelBody
+    
     cbSuccess = ()=>
       switch format
         when 'json'
@@ -194,6 +202,7 @@ class CacheController
       console.log "rational db connection failure.\n Error message := " + error  
       callback && callback error
 
+    model = @dbRepo.define repo_name, @modelBody
     model.sync().success(cbSuccess).error(cbFailure)
 
 
