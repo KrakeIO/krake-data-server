@@ -62,7 +62,6 @@ class CacheController
           deferred.resolve query
 
         .catch (error)=>
-          console.log "Line 63"
           console.log error        
 
     deferred.promise
@@ -133,7 +132,6 @@ class CacheController
     model = @dbRepo.define krake.repo_name, @modelBody
     model.sync()
       .success ()=>
-        console.log "Sync successful"
         @dbRepo.query(query).success(
           (rows)=>
             if rows.length == 1
@@ -146,7 +144,6 @@ class CacheController
             deferred.reject(new Error(e))
         )
       .error (e)=>
-        console.log "Sync failed"
         deferred.reject(new Error(e))
 
     deferred.promise    
@@ -182,8 +179,6 @@ class CacheController
 
         when 'csv'
           query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
-
-      console.log query
 
       @dbRepo.query(query).success(
         (rows)=>
