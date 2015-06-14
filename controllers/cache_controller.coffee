@@ -135,8 +135,10 @@ class CacheController
         @dbRepo.query(query).success(
           (rows)=>
             if rows.length == 1
+              console.log "    Latest batch retrieved #{rows[0]['pingedAt']}"
               deferred.resolve rows[0]["pingedAt"]
             else
+              console.log "    Latest batch could not be retrieved"
               deferred.resolve ""
             
         ).error(
