@@ -49,7 +49,7 @@ class KrakeSetModel
 
     @DataSet
       .findAll(query)
-      .success (@dataset_objs)=>
+      .then (@dataset_objs)=>
         if @dataset_objs.length == 0
           callback && callback()
         else
@@ -58,7 +58,7 @@ class KrakeSetModel
           @setFullColumns()
           callback && callback @krakes
 
-      .error (error)=>
+      .catch (error)=>
         console.log "Error: %s ", error
         callback && callback()
 

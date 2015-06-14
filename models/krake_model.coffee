@@ -40,7 +40,7 @@ class KrakeModel
       callback && callback false, error_msg
 
     # Ensures only 1 Krake definition is retrieved given a krake handle
-    @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).success(gotKrakes).error(couldNotGetKrakes)
+    @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).then(gotKrakes).error(couldNotGetKrakes)
   
 
   getInsertStatement : (data_obj)->

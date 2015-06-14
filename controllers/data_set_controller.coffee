@@ -1,27 +1,38 @@
 KrakeModel    = require '../models/krake_model'
 KrakeSetModel = require '../models/krake_set_model'
 recordSetBody = require('krake-toolkit').schema.record_set
+Q             = require 'q'
 
 class DataSetController
   constructor : (@dbSystem, @dbRepo, @set_name, callback)->  
-    model = @dbRepo.define @set_name, recordSetBody
-    model.sync().success ()=>
+    @model = @dbRepo.define @set_name, recordSetBody
+    @model.sync().then ()=>
       callback && callback()
-    .error ()=>
+    .catch ()=>
       callback && callback()
 
   getRepoBatches : (repo_name, callback)->
+    deferred = Q.defer()
     @km = new KrakeModel @dbSystem, repo_name, [], (status, error_message)=>
       query_string = @km.getSelectStatement 
         $select : [{ $distinct : "pingedAt" }]
         $order: [{ $desc: "pingedAt" }]
 
-      @dbRepo.query(query_string).success (records)->
-        records = records || []
-        records = records.map (record_obj)->
-          record_obj.pingedAt
+      @dbRepo.query(query_string)
+        .then (records)->
+          records = records[0]
+          records = records || []
+          records = records.map (record_obj)->
+            record_obj.pingedAt
 
-        callback && callback records
+          callback && callback records
+          deferred.resolve records
+
+        .catch (error)->
+          callback && callback []
+          deferred.reject error
+
+    deferred.promise
 
   # @Description: synchronizes the records from data source over to dataset
   #
@@ -35,6 +46,7 @@ class DataSetController
   # @param: callback:function
   #   the function that gets called when the synchronization operations completes
   consolidateBatches : (repo_name, num_of_batches, callback)->
+    deferred = Q.defer()
     @getRepoBatches repo_name, (batches)=>  
       batches = batches || []
       cons_func_call  = "a#{@set_name}_#{repo_name}_consolidate()"
@@ -48,35 +60,42 @@ class DataSetController
         END;\r\n
         "
 
-      commitIt = (retries)=>
+      commitIt = (retries, error)=>
         retries = retries || 0
-        if retries == 3 then return callback?()
+        if retries == 3
+          deferred.reject error
+          return callback?()
 
         @dbRepo.query(master_statement)   
-          .success ()=> 
+          .then ()=> 
             console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records successful" +
               "\r\n\tdata_set: #{@set_name}" +
               "\r\n\trepo_name: #{repo_name} "
             callback?()
-          .error (e)=>
+            deferred.resolve()
+
+          .catch (e)=>
             console.log "[DATA_SET_CONTROLLER] #{new Date()} consolidated records failed #{e}" +
               "\r\n\tERROR: #{e}" +
               "\r\n\tdata_set: #{@set_name}" +
               "\r\n\trepo_name: #{repo_name} " +
               "\r\n\tretries: #{retries} "
-            commitIt (retries + 1)
+            commitIt (retries + 1), e
+
 
       commitIt 0
+
+    deferred.promise
 
   clearAll : (repo_name, callback)->
     del_query = @clearBatchesQuery repo_name, []
     @dbRepo.query(del_query)   
-      .success ()=> 
+      .then ()=> 
         console.log "[DATA_SET_CONTROLLER] #{new Date()} cleared all records successful" +
           "\r\n\tdata_set: #{@set_name}" +
           "\r\n\trepo_name: #{repo_name} "
         callback?()
-      .error (e)=>
+      .catch (e)=>
         console.log "[DATA_SET_CONTROLLER] #{new Date()} cleared all records failed #{e}" +
           "\r\n\tERROR: #{e}" +
           "\r\n\tdata_set: #{@set_name}" +

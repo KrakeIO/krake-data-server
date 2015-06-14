@@ -5,6 +5,7 @@ ktk = require 'krake-toolkit'
 recordBody = require('krake-toolkit').schema.record
 recordSetBody = require('krake-toolkit').schema.record_set
 krakeSchema = require('krake-toolkit').schema.krake
+Q           = require 'q'
 
 CONFIG = null
 ENV = "test"
@@ -157,10 +158,13 @@ describe "DataSetController", ->
         @ds3_q
       ]
       @dbRepo.query(queries.join(";")).then ()=>
-        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
-          expect(records.length).toEqual 3
-          @dsc.clearAll @repo1_name, ()=>
-            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+        @dbRepo.query(@ksm.getSelectStatement {})
+      .then (records)=>
+        records = records[0]
+        expect(records.length).toEqual 3
+        @dsc.clearAll @repo1_name, ()=>
+            @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+              records = records[0]
               expect(records.length).toEqual 0
               done()
 
@@ -233,10 +237,12 @@ describe "DataSetController", ->
           @ds3_q
         ]
         @dbRepo.query(queries.join(";")).then ()=>
-          @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+            records = records[0]
             expect(records.length).toEqual 3
             @dsc.consolidateBatches @repo1_name, null, ()=>
-              @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+              @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+                records = records[0]
                 expect(records.length).toEqual 0
                 done()
 
@@ -250,10 +256,12 @@ describe "DataSetController", ->
           @ds3_q
         ]
         @dbRepo.query(queries.join(";")).then ()=>
-          @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+          @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+            records = records[0]
             expect(records.length).toEqual 3
             @dsc.consolidateBatches @repo1_name, 2, ()=>
-              @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+              @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+                records = records[0]
                 expect(records.length).toEqual 3
                 selected_rs = records.filter (rec)=> rec["drug bank"] == "drug day 3" || rec["drug bank"] == "drug day 2" 
                 expect(selected_rs.length).toEqual 2
@@ -295,10 +303,12 @@ describe "DataSetController", ->
           done()     
 
       it "should clear all records belonging to one data source only", (done)->
-        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+        @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+          records = records[0]
           expect(records.length).toEqual 2
           @dsc.consolidateBatches @repo1_name, null, ()=>
-            @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+            @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+              records = records[0]
               expect(records.length).toEqual 2
               selected_rs = records.filter (rec)=> rec["datasource_handle"] == @repo2_name
               expect(selected_rs.length).toEqual 1
@@ -333,10 +343,12 @@ describe "DataSetController", ->
       queries.push @km.getInsertStatement(d2)
       queries.push @km.getInsertStatement(d3)
       @dbRepo.query(queries.join(";")).then ()=>
-        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+        @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+          records = records[0]
           expect(records.length).toEqual 0
           @dsc.consolidateBatches @repo1_name, null, ()=>
-            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).then (records)=>
+              records = records[0]
               expect(records.length).toEqual 3
               expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
               expect(records[0]["drug bank"]).toEqual "drug day 3 funky"
@@ -374,10 +386,12 @@ describe "DataSetController", ->
       queries.push @km.getInsertStatement(d3)
 
       @dbRepo.query(queries.join(";")).then ()=>
-        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+        @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+          records = records[0]
           expect(records.length).toEqual 0
           @dsc.consolidateBatches @repo1_name, 2, ()=>
-            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).then (records)=>
+              records = records[0]
               expect(records.length).toEqual 2
               expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
               expect(records[0]["drug bank"]).toEqual "drug day 3 funky"
@@ -395,19 +409,41 @@ describe "DataSetController", ->
 
       @dbRepo.query(@km.getInsertStatement(d1)).then ()=>
 
-        @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+        @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+          records = records[0]
           expect(records.length).toEqual 0
-          @dsc.consolidateBatches @repo1_name, 2, ()=>
-            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
-              expect(records.length).toEqual 1
-              expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
-              expect(records[0]["drug bank"]).toEqual "drug day 1 funky"
-              done()
+          @dsc.consolidateBatches @repo1_name, 2
+
+        .then ()=>
+          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] })
+
+        .then (records)=>
+          records = records[0]
+          expect(records.length).toEqual 1
+          expect(records[0].pingedAt).toEqual "2015-03-22 00:00:00"
+          expect(records[0]["drug bank"]).toEqual "drug day 1 funky"
+          done()
+
+        .catch (e)=>
+          console.log e
+          done
 
     it "should not crash when there are not records", (done)->
-      @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+      console.log "get statment"
+      @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
+        records = records[0]
         expect(records.length).toEqual 0
-        @dsc.consolidateBatches @repo1_name, 2, ()=>
-          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+        console.log "consolidating"
+        @dsc.consolidateBatches @repo1_name, 2
+          .then ()=>
+            console.log "getting select"
+            @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] })
+          .then (records)=>
+            console.log "final record"
+            records = records[0]
             expect(records.length).toEqual 0
+            done()
+
+          .catch (e)=>
+            console.log e
             done()

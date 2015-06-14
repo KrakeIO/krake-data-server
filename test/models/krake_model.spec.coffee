@@ -52,7 +52,7 @@ describe "KrakeModel", ->
       .add(@Records.sync({force: true}))
       .run()
       .success ()=>
-        @Krake.create({ content: krake_definition, handle: @repo_name}).success ()=>
+        @Krake.create({ content: krake_definition, handle: @repo_name}).then ()=>
           # instantiates a krake model
           @km = new KrakeModel dbSystem, @repo_name, [], ()->
             done()
@@ -222,14 +222,21 @@ describe "KrakeModel", ->
       data_obj = 
         "drug bank" : "what to do"
         "pingedAt" : new Date()
-        "pingedAt" : new Date()
+
       insert_query = @km.getInsertStatement(data_obj)
-      @dbRepo.query(insert_query).success ()=>
+
+      @dbRepo.query(insert_query).then ()=>
         query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"] }
-        @dbRepo.query(query_string).success (records)->
-          expect(records.length).toEqual 1
-          expect(records[0]["drug bank"]).toEqual "what to do"
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records.length).toEqual 1
+        expect(records[0]["drug bank"]).toEqual "what to do"
+        done()
+
+      .catch (error)->
+        done()
 
   describe "getFormattedDate", ->
     it "should ensure formatted date returns date of good and proper format", (done)->
@@ -300,9 +307,12 @@ describe "KrakeModel", ->
       promise2 = promise1.then @Records.create({ properties: "", pingedAt: d2 })
       promise2.then ()=>
         query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
-        @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual dateFormat(d2, "UTC:yyyy-mm-dd HH:MM:ss")
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records[0].pingedAt).toEqual dateFormat(d2, "UTC:yyyy-mm-dd HH:MM:ss")
+        done()
 
     it "should return the earliest batch", (done)->
       d1 = new Date()
@@ -314,9 +324,11 @@ describe "KrakeModel", ->
       promise2 = promise1.then @Records.create({ properties: "", pingedAt: d2 })
       promise2.then ()=>
         query_string = @km.getSelectStatement { $select : [{ $min : "pingedAt" }] }
-        @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual dateFormat(d1, "UTC:yyyy-mm-dd HH:MM:ss")
-          done()
+        @dbRepo.query(query_string)
+      .then (records)->
+        records = records[0]
+        expect(records[0].pingedAt).toEqual dateFormat(d1, "UTC:yyyy-mm-dd HH:MM:ss")
+        done()
 
     it "should get the all the batches", (done)->
       d1 = new Date()
@@ -330,7 +342,7 @@ describe "KrakeModel", ->
       promise4 = promise3.then @Records.create({ properties: "", pingedAt: d2 })
       promise4.then ()=>
         query_string = @km.getSelectStatement { $select : [{ $distinct : "pingedAt" }] }
-        @dbRepo.query(query_string).success (records)->
+        @dbRepo.query(query_string).then (records)->
           expect(records.length).toEqual 2
           done()
 
@@ -873,9 +885,12 @@ describe "KrakeModel", ->
 
       @dbRepo.query(queries.join(";")).then ()=>
         query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1 }
-        @dbRepo.query(query_string).success (records)->
-          expect(records.length).toEqual 1
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records.length).toEqual 1
+        done()
 
   describe "offsetClause", ->
     it "should return an offset of 10 and not cause an error", (done)->
@@ -908,9 +923,12 @@ describe "KrakeModel", ->
 
       @dbRepo.query(queries.join(";")).then ()=>
         query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 0 }
-        @dbRepo.query(query_string).success (records)->
-          expect(records.length).toEqual 1
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records.length).toEqual 1
+        done()
 
     it "should insert a record that is retrievable", (done)->
       data_obj1 = 
@@ -929,6 +947,9 @@ describe "KrakeModel", ->
       queries.push @km.getInsertStatement(data_obj1)
       @dbRepo.query(queries.join(";")).then ()=>
         query_string = @km.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 4 }
-        @dbRepo.query(query_string).success (records)->
-          expect(records.length).toBe 0
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records.length).toBe 0
+        done()

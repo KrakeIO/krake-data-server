@@ -125,7 +125,7 @@ describe "krake data server", ->
         .add(@RecordSets.sync({force: true}))
         .run()
         .success ()=>
-          @Krake.create({ content: krake_definition, handle: @repo1_name}).success ()=>
+          @Krake.create({ content: krake_definition, handle: @repo1_name}).then ()=>
             @km = new KrakeModel dbSystem, @repo1_name, [], ()=>
               @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
@@ -163,7 +163,7 @@ describe "krake data server", ->
     it "should port all records from data source table into data set table", (done)->
       d1 = new Date()
       api_location = @test_server + 'connect/' + @repo1_name + '/' + @set_name
-      @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+      @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
         expect(records.length).toEqual 0
         request api_location, (error, response, body)=>
           expect(()=>
@@ -173,7 +173,7 @@ describe "krake data server", ->
           expect(results["status"]).toEqual "success"
           expect(results["message"]).toEqual "connected"
 
-          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).then (records)=>
             expect(records.length).toEqual 3
             expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
             expect(records[0]["drug bank"]).toEqual "drug day 3 funky"
@@ -194,7 +194,7 @@ describe "krake data server", ->
         .add(@RecordSets.sync({force: true}))
         .run()
         .success ()=>
-          @Krake.create({ content: krake_definition, handle: @repo1_name}).success ()=>
+          @Krake.create({ content: krake_definition, handle: @repo1_name}).then ()=>
             @km = new KrakeModel dbSystem, @repo1_name, [], ()=>
               @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
@@ -232,7 +232,7 @@ describe "krake data server", ->
     it "should port latest records from data source table into data set table", (done)->
       d1 = new Date()
       api_location = @test_server + 'synchronize/' + @repo1_name + '/' + @set_name
-      @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+      @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
         expect(records.length).toEqual 0
         request api_location, (error, response, body)=>
           expect(()=>
@@ -242,7 +242,7 @@ describe "krake data server", ->
           expect(results["status"]).toEqual "success"
           expect(results["message"]).toEqual "synchronized"
 
-          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).then (records)=>
             expect(records.length).toEqual 2
             expect(records[0].pingedAt).toEqual "2015-03-24 00:00:00"
             expect(records[0]["drug bank"]).toEqual "drug day 3 funky"
@@ -262,49 +262,50 @@ describe "krake data server", ->
         .run()
         .success ()=>
 
-          @Krake.create({ content: krake_definition, handle: @repo1_name}).success ()=>
-            @Krake.create({ content: krake_definition, handle: @repo2_name}).success ()=>
-              @km = new KrakeModel dbSystem, @repo1_name, [], ()=>
-                @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
+          @Krake.create({ content: krake_definition, handle: @repo1_name}).then ()=>
+            @Krake.create({ content: krake_definition, handle: @repo2_name})
+          .then ()=>
+            @km = new KrakeModel dbSystem, @repo1_name, [], ()=>
+              @ksm = new KrakeSetModel dbSystem, @set_name, @km.columns, ()=>
 
-                  d1 = 
-                    "drug bank"         : "drug day 1"
-                    "drug name"         : "drug name day 1"
-                    "pingedAt"          : "2015-03-22 00:00:00"
-                    "createdAt"         : "2015-03-22 00:00:00"
-                    "updatedAt"         : "2015-03-22 00:00:00"
+                d1 = 
+                  "drug bank"         : "drug day 1"
+                  "drug name"         : "drug name day 1"
+                  "pingedAt"          : "2015-03-22 00:00:00"
+                  "createdAt"         : "2015-03-22 00:00:00"
+                  "updatedAt"         : "2015-03-22 00:00:00"
 
-                  ds1 = 
-                    "drug bank"         : "drug day 1"
-                    "drug name"         : "drug name day 1"
-                    "pingedAt"          : "2015-03-22 00:00:00"
-                    "createdAt"         : "2015-03-22 00:00:00"
-                    "updatedAt"         : "2015-03-22 00:00:00"
-                    "datasource_handle" : @repo1_name
+                ds1 = 
+                  "drug bank"         : "drug day 1"
+                  "drug name"         : "drug name day 1"
+                  "pingedAt"          : "2015-03-22 00:00:00"
+                  "createdAt"         : "2015-03-22 00:00:00"
+                  "updatedAt"         : "2015-03-22 00:00:00"
+                  "datasource_handle" : @repo1_name
 
-                  ds2 = 
-                    "drug bank"         : "drug day 3"
-                    "drug name"         : "drug name day 3"
-                    "pingedAt"          : "2015-03-22 00:00:00"
-                    "createdAt"         : "2015-03-22 00:00:00"
-                    "updatedAt"         : "2015-03-22 00:00:00"
-                    "datasource_handle" : @repo2_name
+                ds2 = 
+                  "drug bank"         : "drug day 3"
+                  "drug name"         : "drug name day 3"
+                  "pingedAt"          : "2015-03-22 00:00:00"
+                  "createdAt"         : "2015-03-22 00:00:00"
+                  "updatedAt"         : "2015-03-22 00:00:00"
+                  "datasource_handle" : @repo2_name
 
-                  queries = []
-                  queries.push @km.getInsertStatement(d1)
-                  queries.push @ksm.getInsertStatement(ds1)
-                  queries.push @ksm.getInsertStatement(ds2)
-                  queries_st = queries.join(";")
+                queries = []
+                queries.push @km.getInsertStatement(d1)
+                queries.push @ksm.getInsertStatement(ds1)
+                queries.push @ksm.getInsertStatement(ds2)
+                queries_st = queries.join(";")
 
-                  promise1 = @dbRepo.query queries_st
-                  promise1.then ()=>
-                    done()  
+                promise1 = @dbRepo.query queries_st
+                promise1.then ()=>
+                  done()  
 
 
     it "should delete all records belonging to data source table from data set table", (done)->
       d1 = new Date()
       api_location = @test_server + 'disconnect/' + @repo1_name + '/' + @set_name
-      @dbRepo.query(@ksm.getSelectStatement {}).success (records)=>
+      @dbRepo.query(@ksm.getSelectStatement {}).then (records)=>
         expect(records.length).toEqual 2
         request api_location, (error, response, body)=>
           expect(()=>
@@ -314,7 +315,7 @@ describe "krake data server", ->
           expect(results["status"]).toEqual "success"
           expect(results["message"]).toEqual "disconnected"
 
-          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).success (records)=>
+          @dbRepo.query(@ksm.getSelectStatement { $order : [{ $desc : "pingedAt" }] }).then (records)=>
             expect(records.length).toEqual 1
             expect(records[0].datasource_handle).toEqual @repo2_name
             done()
