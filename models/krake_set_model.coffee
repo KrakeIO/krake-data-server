@@ -174,8 +174,13 @@ class KrakeSetModel
 
   compoundColNameWhere : (column)->
     column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
-    if column in @common_cols 
+
+    if column in @status_cols
+      "cast(to_char(\"" + column + "\", 'YYYY-MM-DD HH24:MI:SS') as text)"
+
+    else if column in @common_cols 
       '"' + column + '"'
+      
     else 
       @hstoreColName column
 

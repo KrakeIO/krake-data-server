@@ -38,7 +38,7 @@ class CacheController
           callback && callback null, pathToFile
 
       .catch (error)=>
-        console.log error
+        console.log "getCache: " + error
 
 
 
@@ -62,7 +62,7 @@ class CacheController
           deferred.resolve query
 
         .catch (error)=>
-          console.log error        
+          console.log "getSqlQuery: " + error        
 
     deferred.promise
 
@@ -74,9 +74,9 @@ class CacheController
         @getCountForBatch krake, latest_batch, deferred
       else
         deferred.resolve({
-            batch: "None", 
-            count: 0
-          })
+          batch: "None", 
+          count: 0
+        })
 
     deferred.promise
 
@@ -95,6 +95,7 @@ class CacheController
 
     @dbRepo.query(query).then(
       (rows)=>
+        rows = rows[0]
         if rows.length == 1
           deferred.resolve({
             batch: latest_batch, 
@@ -128,7 +129,6 @@ class CacheController
       "$limit" : 1
 
     query = krake.getSelectStatement query_obj
-
     model = @dbRepo.define krake.repo_name, @modelBody
     model.sync()
       .then ()=>
@@ -137,10 +137,8 @@ class CacheController
       .then (results)=>
         rows = results[0]
         if rows.length == 1
-          console.log "    Latest batch retrieved #{rows[0]['pingedAt']}"
           deferred.resolve rows[0]["pingedAt"]
         else
-          console.log "    Latest batch could not be retrieved"
           deferred.resolve ""
             
       .catch (e)=>
