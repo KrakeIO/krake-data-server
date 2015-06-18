@@ -18,11 +18,12 @@ class ModelFactoryController
         handle: handle
 
     @Krake.count(query)
-      .success (count)=>
+      .then (count)=>
+        console.log count
         is_true = count > 0
         callback && callback is_true
 
-      .error (error)=>
+      .catch (error)=>
         console.log "Error: %s ", error
         callback && callback(false)
 
@@ -32,11 +33,11 @@ class ModelFactoryController
         handle: handle
 
     @DataSet.count(query)
-      .success (count)=>
+      .then (count)=>
         is_true = count > 0
         callback && callback is_true
 
-      .error (error)=>
+      .catch (error)=>
         console.log "Error: %s ", error
         callback && callback(false)
 

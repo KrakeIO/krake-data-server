@@ -40,7 +40,7 @@ class KrakeModel
       callback && callback false, error_msg
 
     # Ensures only 1 Krake definition is retrieved given a krake handle
-    @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).success(gotKrakes).error(couldNotGetKrakes)
+    @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).then(gotKrakes).error(couldNotGetKrakes)
   
 
   getInsertStatement : (data_obj)->
@@ -117,8 +117,13 @@ class KrakeModel
 
   compoundColNameWhere : (column)->
     column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
-    if column in @common_cols
+
+    if column in @status_cols
+      "cast(to_char(\"" + column + "\", 'YYYY-MM-DD HH24:MI:SS') as text)"
+
+    else if column in @common_cols
       '"' + column + '"'
+      
     else 
       @hstoreColName column
 

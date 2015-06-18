@@ -57,11 +57,14 @@ describe "ModelFactoryController", ->
     @DataSetKrakeRule.belongsTo @DataSetKrake
     @DataSetKrake.hasMany @DataSetKrakeRule, { as: "data_set_krake_rule", foreignKey: 'data_set_krake_id'}
 
-    @dbSystem.sync({force: true}).success ()=>
+    @dbSystem.sync({force: true}).then ()=>
       @mfc = new ModelFactoryController @dbSystem, ()=>
         @Krake.create({ content: krake_definition, handle: @repo_name})
           .then ()=> @DataSet.create({ handle: @set_name, name: @set_name })
           .then ()=> done()
+          .catch (e)=>
+            console.log e
+            done()
 
   it "should indicate true if a handle belong to a krake", (done)->
     @mfc.isKrake @repo_name, (result)=>

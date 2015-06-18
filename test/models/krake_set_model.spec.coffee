@@ -234,10 +234,13 @@ describe "KrakeSetModel", ->
       insert_query = @ksm.getInsertStatement(data_obj)
       @dbRepo.query(insert_query).success ()=>
         query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"] }
-        @dbRepo.query(query_string).success (records)->
-          expect(records.length).toEqual 1
-          expect(records[0]["drug bank"]).toEqual "what to do"
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records.length).toEqual 1
+        expect(records[0]["drug bank"]).toEqual "what to do"
+        done()
 
   describe "getFormattedDate", ->
     it "should ensure formatted date returns date of good and proper format", (done)->
@@ -308,9 +311,12 @@ describe "KrakeSetModel", ->
       promise2 = promise1.then @RecordSets.create({ properties: "", pingedAt: d2 })
       promise2.then ()=>
         query_string = @ksm.getSelectStatement { $select : [{ $max : "pingedAt" }] }
-        @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual dateFormat(d2, "UTC:yyyy-mm-dd HH:MM:ss")
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records[0].pingedAt).toEqual dateFormat(d2, "UTC:yyyy-mm-dd HH:MM:ss")
+        done()
 
     it "should return the earliest batch", (done)->
       d1 = new Date()
@@ -322,9 +328,11 @@ describe "KrakeSetModel", ->
       promise2 = promise1.then @RecordSets.create({ properties: "", pingedAt: d2 })
       promise2.then ()=>
         query_string = @ksm.getSelectStatement { $select : [{ $min : "pingedAt" }] }
-        @dbRepo.query(query_string).success (records)->
-          expect(records[0].pingedAt).toEqual dateFormat(d1, "UTC:yyyy-mm-dd HH:MM:ss")
-          done()
+        @dbRepo.query(query_string)
+      .then (records)->
+        records = records[0]
+        expect(records[0].pingedAt).toEqual dateFormat(d1, "UTC:yyyy-mm-dd HH:MM:ss")
+        done()
 
     it "should get the all the batches", (done)->
       d1 = new Date()
@@ -869,16 +877,19 @@ describe "KrakeSetModel", ->
       data_obj = 
         "drug bank" : "what to do"
         "pingedAt" : new Date()
-        "pingedAt" : new Date()
+
       queries = []
       queries.push @ksm.getInsertStatement(data_obj)
       queries.push @ksm.getInsertStatement(data_obj)
       queries.push @ksm.getInsertStatement(data_obj)
       @dbRepo.query(queries.join(";")).then ()=>
         query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1 }
-        @dbRepo.query(query_string).success (records)->
-          expect(records.length).toEqual 1
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records.length).toEqual 1
+        done()
 
   describe "offsetClause", ->
     it "should return an offset of 10 and not cause an error", (done)->
@@ -908,9 +919,14 @@ describe "KrakeSetModel", ->
       queries.push @ksm.getInsertStatement(data_obj2)
       queries.push @ksm.getInsertStatement(data_obj3)
       queries.push @ksm.getInsertStatement(data_obj1)
-      @dbRepo.query(queries.join(";")).then ()=>
-        query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 0 }
-        @dbRepo.query(query_string).success (records)->
+
+      @dbRepo.query(queries.join(";"))
+        .then ()=>
+          query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 0 }
+          @dbRepo.query(query_string)
+          
+        .then (records)=>
+          records = records[0]
           expect(records.length).toEqual 1
           done()
 
@@ -929,8 +945,12 @@ describe "KrakeSetModel", ->
       queries.push @ksm.getInsertStatement(data_obj2)
       queries.push @ksm.getInsertStatement(data_obj3)
       queries.push @ksm.getInsertStatement(data_obj1)
+
       @dbRepo.query(queries.join(";")).then ()=>
         query_string = @ksm.getSelectStatement { $select : ["drug bank", "pingedAt"], $limit : 1, $offset : 4 }
-        @dbRepo.query(query_string).success (records)->
-          expect(records.length).toBe 0
-          done()
+        @dbRepo.query(query_string)
+
+      .then (records)->
+        records = records[0]
+        expect(records.length).toBe 0
+        done()

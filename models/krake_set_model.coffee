@@ -49,7 +49,7 @@ class KrakeSetModel
 
     @DataSet
       .findAll(query)
-      .success (@dataset_objs)=>
+      .then (@dataset_objs)=>
         if @dataset_objs.length == 0
           callback && callback()
         else
@@ -58,7 +58,7 @@ class KrakeSetModel
           @setFullColumns()
           callback && callback @krakes
 
-      .error (error)=>
+      .catch (error)=>
         console.log "Error: %s ", error
         callback && callback()
 
@@ -174,8 +174,13 @@ class KrakeSetModel
 
   compoundColNameWhere : (column)->
     column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
-    if column in @common_cols 
+
+    if column in @status_cols
+      "cast(to_char(\"" + column + "\", 'YYYY-MM-DD HH24:MI:SS') as text)"
+
+    else if column in @common_cols 
       '"' + column + '"'
+      
     else 
       @hstoreColName column
 
