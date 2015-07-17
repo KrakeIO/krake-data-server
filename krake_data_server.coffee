@@ -129,7 +129,6 @@ app.get '/:data_repository/schema', (req, res)=>
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
-  res.header "Content-Type", "application/json; charset=utf-8"
   
   data_repository = req.params.data_repository
   unescape        = new UnescapeStream()
@@ -139,8 +138,16 @@ app.get '/:data_repository/:format', (req, res)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
-        if req.params.format == 'csv'
+        if req.params.format == 'json' 
+          res.header "Content-Type", "application/json; charset=utf-8"
+
+        if req.params.format == 'html' 
+          res.header "Content-Type", "text/html; charset=utf-8"
+
+        else if req.params.format == 'csv'
+          res.header "Content-Type", "text/csv; charset=utf-8"
           res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
+
         fs.createReadStream(path_to_cache)
           .pipe unescape
           .pipe res
