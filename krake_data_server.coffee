@@ -62,6 +62,9 @@ app.configure ()->
   app.use(express.cookieParser());
   app.use(express.bodyParser());
   app.use(app.router);
+  app.use (req, res)->
+    res.header "Content-Type", "application/json; charset=utf-8"
+
   return app.use(express["static"](__dirname + "/public"))
 
 # @Description : Indicates to the user that this is a Krake data server
