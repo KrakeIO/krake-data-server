@@ -132,6 +132,7 @@ app.get '/:data_repository/schema', (req, res)=>
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
+  res.header "Content-Type", "application/json; charset=utf-8"
   data_repository = req.params.data_repository
   unescape        = new UnescapeStream()
   
