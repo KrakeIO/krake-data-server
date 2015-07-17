@@ -62,9 +62,6 @@ app.configure ()->
   app.use(express.cookieParser());
   app.use(express.bodyParser());
   app.use(app.router);
-  app.use (req, res)->
-    res.header "Content-Type", "application/json; charset=utf-8"
-
   return app.use(express["static"](__dirname + "/public"))
 
 # @Description : Indicates to the user that this is a Krake data server
@@ -133,6 +130,7 @@ app.get '/:data_repository/schema', (req, res)=>
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
   res.header "Content-Type", "application/json; charset=utf-8"
+  
   data_repository = req.params.data_repository
   unescape        = new UnescapeStream()
   
