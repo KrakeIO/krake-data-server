@@ -2,7 +2,6 @@ AWS             = require 'aws-sdk'
 fs              = require 'fs'
 Q               = require 'q'
 S3              = require('aws-sdk').S3
-S3S             = require('s3-streams')
 UnescapeStream  = require 'unescape-stream'
 
 class S3Backup
@@ -17,17 +16,18 @@ class S3Backup
         Bucket: @bucket_name 
     )
 
-  # Given a task_key creates a corresponding S3 folder in the current indicated S3 Bucket
-  uploadFile:  ( task_key, file_name, payload )->
-    params =
-      Key: task_key + "/" + file_name
-      Body: payload
+  getS3CacheStream : ( task_key, file_name, path_to_file, content_type )->
+    deferred = Q.defer()
+    @cacheExist( task_key, file_name )
+      .then ()=> # When S3 cache exists
+        download_stream_obj = @getDownloadStreamObject task_key, file_name, content_type
+        deferred.resolve download_stream_obj
 
-    @s3bucket.upload(
-      params
-      ( err, data )->
-        console.log arguments
-    )
+      .catch ()=>  # When S3 cache does not exist
+        download_stream_obj = @streamUpload task_key, file_name, path_to_file, content_type
+        deferred.resolve download_stream_obj
+
+    deferred.promise
 
   # Description:
   #   given a task_key, file_name, path_to_file, content_type
@@ -48,31 +48,25 @@ class S3Backup
   streamUpload: ( task_key, file_name, path_to_file, content_type )->
     deferred = Q.defer()
     unescape = new UnescapeStream()
-    upStream = @getUploadStreamObject( task_key, file_name, content_type )
 
-    streaming_activity = fs.createReadStream(path_to_file)
-      .pipe unescape
-      .pipe upStream
+    body = fs.createReadStream( path_to_file ).pipe(unescape);
+    s3obj = new AWS.S3(
+      params: 
+        Bucket: @bucket_name
+        Key: task_key + "/" + file_name 
+    )
 
-    streaming_activity
-      .on 'finish', ()=>
-        console.log "[S3_BACKUP] #{new Date()} Upload activity completed"
+    s3obj.upload({ Body: body })
+      .on('httpUploadProgress', (evt) => 
+        # console.log(evt)
+
+      ).send( (err, data) => 
+        # console.log(err, data) 
         download_stream_obj = @getDownloadStreamObject( task_key, file_name, content_type  )
         deferred.resolve download_stream_obj
-      .on 'error', ()=>
-        console.log "[S3_BACKUP] #{new Date()} Upload activity failed"
-        console.log arguments
+      )
 
     deferred.promise
-
-  getUploadStreamObject: ( task_key, file_name, content_type )->
-    S3S.WriteStream(
-      @s3bucket,
-      {
-        Bucket: @bucket_name
-        Key: task_key + "/" + file_name
-        ContentType: content_type
-      })
 
   getDownloadStreamObject: ( task_key, file_name, content_type )->
     params =
@@ -119,17 +113,7 @@ if !module.parent
   bucket_name = process.env['AWS_S3_BUCKET']
 
   sb = new S3Backup( access_key, secret_key, region, bucket_name )
-  # sb.uploadFile "task_key_2", "file_name", "something wor"
-  # sb.cacheExist( "n468_4e93c2fc0dd9aceadf57e0756571232aeses", "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json" )
-  #   .then ()->
-  #     sb.streamUpload "n468_4e93c2fc0dd9aceadf57e0756571232aeses", "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", "./test_file.json", "application/json; charset=utf-8"
-  #   .then ( s3_down_stream )->
-  #     console.log("Printing out the object that we sent to S3")
-  #     s3_down_stream.pipe(process.stdout)
-  #   .catch ()->
-  #     console.log "Cache does not exist"
-
-  sb.streamUpload(
+  sb.getS3CacheStream(
     "n468_4e93c2fc0dd9aceadf57e0756571232aeses", 
     "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
     "/tmp/krake_data_cache/n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
