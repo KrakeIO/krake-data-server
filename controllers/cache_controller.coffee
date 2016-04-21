@@ -28,6 +28,7 @@ class CacheController
       @getSqlQuery(repo_name, krake, query_obj)
         .then (query)=>
           cacheKey = @getCacheKey repo_name, query
+          pathToFile = @cachePath + cacheKey + "." + format
           @s3Backer.getS3CacheStream( repo_name, cacheKey, pathToFile, @getContentType(format) )
             .then ( s3_down_stream )=> # When S3 cache exists
               callback && callback null, s3_down_stream
