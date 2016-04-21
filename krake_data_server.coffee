@@ -219,9 +219,15 @@ if !module.parent
     "\n    Password : %s" + 
     "\n    Port : %s" + 
     "\n    Host : %s" + 
+    "\n    AWS_ACCESS_KEY : %s" + 
+    "\n    AWS_SECRET_KEY : %s" + 
+    "\n    AWS_S3_REGION : %s" + 
+    "\n    AWS_S3_BUCKET : %s" + 
     "\n    Krake Definition DB : %s" +   
     "\n    Krake Scraped Data DB : %s" + 
     "\n    Data server listening at port : %s",
-    ENV, userName, password, options.port, options.host, CONFIG.postgres.database, CONFIG.userDataDB, port
+    ENV, userName, password, options.port, options.host, 
+    access_key, secret_key, region, bucket_name,
+    CONFIG.postgres.database, CONFIG.userDataDB, port
 
 
