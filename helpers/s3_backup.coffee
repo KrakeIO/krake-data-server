@@ -56,7 +56,7 @@ class S3Backup
 
     streaming_activity
       .on 'finish', ()=>
-        # console.log "Upload activity completed"
+        console.log "[S3_BACKUP] #{new Date()} Upload activity completed"
         download_stream_obj = @getDownloadStreamObject( task_key, file_name, content_type  )
         deferred.resolve download_stream_obj
 
