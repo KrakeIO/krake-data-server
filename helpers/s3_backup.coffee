@@ -59,6 +59,9 @@ class S3Backup
         console.log "[S3_BACKUP] #{new Date()} Upload activity completed"
         download_stream_obj = @getDownloadStreamObject( task_key, file_name, content_type  )
         deferred.resolve download_stream_obj
+      .on 'error', ()=>
+        console.log "[S3_BACKUP] #{new Date()} Upload activity failed"
+        console.log arguments
 
     deferred.promise
 
@@ -117,11 +120,20 @@ if !module.parent
 
   sb = new S3Backup( access_key, secret_key, region, bucket_name )
   # sb.uploadFile "task_key_2", "file_name", "something wor"
-  sb.cacheExist( "task_key_pipe", "file_name.json" )
-    .then ()->
-      sb.streamUpload "task_key_pipe", "file_name.json", "./test_file.json", "application/json; charset=utf-8"
-    .then ( s3_down_stream )->
-      console.log("Printing out the object that we sent to S3")
-      s3_down_stream.pipe(process.stdout)
-    .catch ()->
-      console.log "Cache does not exist"
+  # sb.cacheExist( "n468_4e93c2fc0dd9aceadf57e0756571232aeses", "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json" )
+  #   .then ()->
+  #     sb.streamUpload "n468_4e93c2fc0dd9aceadf57e0756571232aeses", "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", "./test_file.json", "application/json; charset=utf-8"
+  #   .then ( s3_down_stream )->
+  #     console.log("Printing out the object that we sent to S3")
+  #     s3_down_stream.pipe(process.stdout)
+  #   .catch ()->
+  #     console.log "Cache does not exist"
+
+  sb.streamUpload(
+    "n468_4e93c2fc0dd9aceadf57e0756571232aeses", 
+    "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
+    "/tmp/krake_data_cache/n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
+    "application/json; charset=utf-8"
+  ).then ( s3_down_stream )->
+    console.log("Printing out the object that we sent to S3")
+    s3_down_stream.pipe(process.stdout)
