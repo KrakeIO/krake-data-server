@@ -6,7 +6,7 @@ kson = require 'kson'
 Q = require 'q'
 
 class CacheController
-  constructor: (@cachePath, @dbRepo, @modelBody)->
+  constructor: (@cachePath, @dbRepo, @modelBody, @s3Backer)->
     @csvDelimiter = "  DELIMITER ',' "
     @createCacheFolder()
 
@@ -15,6 +15,39 @@ class CacheController
 
   getCacheKey: (repo_name, query)->
     repo_name + "_" + crypto.createHash('md5').update(query).digest("hex")
+
+  getCacheStream: (repo_name, krake, query_obj, format, callback)->
+    if !@s3Backer
+      @getCache repo_name, krake, query_obj, format, ( err, path_to_cache )=>
+        if err
+          callback && callback err, null
+        else
+          callback && callback null, fs.createReadStream( path_to_cache )
+
+    else
+      @getSqlQuery(repo_name, krake, query_obj)
+        .then (query)=>
+
+          cacheKey = @getCacheKey repo_name, query
+
+          @s3Backer.cacheExist( repo_name, cacheKey )
+            .then ( s3_down_stream )=> # When S3 cache exists
+              callback && callback null, s3_down_stream
+
+            .catch ()=>  # When S3 cache does not exist
+              pathToFile = @cachePath + cacheKey + "." + format
+              sb.streamUpload( repo_name, query, pathToFile, @getContentType(format) )
+                .then ( s3_down_stream )->
+                  callback && callback null, s3_down_stream
+
+  getContentType: (format)->
+    switch format
+      when 'json'
+        "application/json; charset=utf-8"
+      when 'html'
+        "text/html; charset=utf-8"
+      when 'csv'
+        "text/csv; charset=utf-8"
   
   # @Description : returns the path to the cached record 
   # @param : repo_name:String

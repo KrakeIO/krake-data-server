@@ -20,6 +20,8 @@
     , "rimraf": ""
     , "sequelize": "2.0.6"
     , "unescape-stream": "0.0.2"
+    , "aws-sdk": "^2.1.34"
+    , "s3-streams": ""
   },
   "devDependencies": {
     "request": ""

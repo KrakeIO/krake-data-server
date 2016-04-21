@@ -15,6 +15,7 @@ UnescapeStream    = require 'unescape-stream'
 KrakeModel              = require './models/krake_model'
 KrakeSetModel           = require './models/krake_set_model'
 ModelFactoryController  = require './controllers/model_factory_controller'
+S3Backup                = require './helpers/s3_backup'
 
 CacheController         = require './controllers/cache_controller'
 DataSetController       = require './controllers/data_set_controller'
@@ -40,6 +41,11 @@ options.pool = pool
 userName = process.env['KRAKE_PG_USERNAME'] || CONFIG.postgres.username
 password = process.env['KRAKE_PG_PASSWORD'] || CONFIG.postgres.password
 
+access_key  = process.env['AWS_ACCESS_KEY']
+secret_key  = process.env['AWS_SECRET_KEY']
+region      = process.env['AWS_S3_REGION'] 
+bucket_name = process.env['AWS_S3_BUCKET']
+
 dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
 
 options["define"]=
@@ -49,7 +55,9 @@ dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 krakeSchema = require('krake-toolkit').schema.krake
 Krake = dbSystem.define 'krakes', krakeSchema
 
-cm = new CacheController CONFIG.cachePath, dbRepo, recordBody
+
+sb = new S3Backup access_key, secret_key, region, bucket_name
+cm = new CacheController CONFIG.cachePath, dbRepo, recordBody, sb
 csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody
 mfc = new ModelFactoryController dbSystem
 
@@ -146,13 +154,25 @@ app.get '/:data_repository/:format', (req, res)=>
 
         else if req.params.format == 'csv'
           res.header "Content-Type", "text/csv; charset=utf-8"
-          res.header 'Content-Disposition', 'attachment;filename=' + req.params.data_repository + '.csv'
+          res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.csv'
 
         fs.createReadStream(path_to_cache)
           .pipe unescape
           .pipe res
 
-
+# @Description : Returns an array of JSON/CSV results based on query parameters
+app.get '/stream/:data_repository/:format', (req, res)=>
+  
+  data_repository = req.params.data_repository
+  unescape        = new UnescapeStream()
+  
+  mfc.getModel data_repository, (FactoryModel)=>
+    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
+      console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
+      query_obj = req.query.q && JSON.parse(req.query.q) || {}
+      cm.getCacheStream data_repository, km, query_obj, req.params.format, (error, down_stream)=>
+        res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.' + req.params.format
+        down_stream.pipe res
 
 # @Description : Copies all records from data_repository over to dataset_repository
 app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
