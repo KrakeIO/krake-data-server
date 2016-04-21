@@ -36,7 +36,7 @@ class CacheController
 
             .catch ()=>  # When S3 cache does not exist
               pathToFile = @cachePath + cacheKey + "." + format
-              @s3Backer.streamUpload( repo_name, query, pathToFile, @getContentType(format) )
+              @s3Backer.streamUpload( repo_name, cacheKey, pathToFile, @getContentType(format) )
                 .then ( s3_down_stream )->
                   callback && callback null, s3_down_stream
 
