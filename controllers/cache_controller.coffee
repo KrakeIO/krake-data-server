@@ -16,26 +16,55 @@ class CacheController
   getCacheKey: (repo_name, query)->
     repo_name + "_" + crypto.createHash('md5').update(query).digest("hex")
 
+  # Description: given the necessary details attempts to fetch the Stream Object to data harvested 
+  #
+  # Params:
+  #   repo_name:String
+  #   krake:Object
+  #   query_obj:Object
+  #   format:String
+  #
+  # Returns
+  #   Promise:Object
+  #     resolve:function( download_stream )
+  #
   getCacheStream: (repo_name, krake, query_obj, format)->
     console.log "[CacheController] #{new Date()} \t\tget Cache Stream"
     deferred = Q.defer()
 
-    query_promise = @getSqlQuery(repo_name, krake, query_obj)
+    query_promise = @getSqlQuery( repo_name, krake, query_obj )
 
     query_promise
       .then ( query_string )=>
         console.log "[CacheController] #{new Date()} \t\tQuery String generated"      
-        @tryFetchCacheFromS3( repo_name, krake, query_obj, query_string, format )
+        if @mustRegenerateLocalCache( query_obj )
+          @tryGenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format )
+
+        else
+          @tryFetchCacheFromS3( repo_name, krake, query_obj, query_string, format )
 
       .then ( cache_stream )=>
-        console.log "[CacheController] #{new Date()} \t\tCache Stream generated"
+        console.log "[CacheController] #{new Date()} \t\tgot Cache Stream"
         deferred.resolve cache_stream
 
       .catch ( err )=>
+        console.log "[CacheController] #{new Date()} \t\tfailed to get Cache Stream"
         deferred.reject err
 
     deferred.promise
 
+  # Description: given the necessary details attempts to fetch the S3 Stream Object
+  #
+  # Params:
+  #   repo_name:String
+  #   krake:Object
+  #   query_obj:Object
+  #   format:String
+  #
+  # Returns
+  #   Promise:Object
+  #     resolve:function( download_stream )
+  #
   tryFetchCacheFromS3: ( repo_name, krake, query_obj, query_string, format )->
     console.log "[CacheController] #{new Date()} \t\ttrying to fetch cache from S3"
     deferred = Q.defer()
@@ -65,6 +94,19 @@ class CacheController
 
     deferred.promise
 
+  # Description: given the necessary details attempts to generate S3 cache 
+  #   and then fetch the S3 Stream Object
+  #
+  # Params:
+  #   repo_name:String
+  #   krake:Object
+  #   query_obj:Object
+  #   format:String
+  #
+  # Returns
+  #   Promise:Object
+  #     resolve:function( download_stream )
+  #
   tryGenerateS3Cache: ( repo_name, krake, query_obj, query_string, format )->
     console.log "[CacheController] #{new Date()} \t\ttrying to generate cache on S3"
     deferred = Q.defer()
@@ -72,27 +114,58 @@ class CacheController
     cacheKey = @getCacheKey repo_name, query_string
     pathToFile = @cachePath + cacheKey + "." + format
 
-    if (!fs.existsSync(pathToFile) || query_obj.$fresh)
+    if localCacheDoesNotExist( pathToFile )
       console.log "[CacheController] #{new Date()} \t\tlocal cache does not exist"
-      @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
-        .then ()=>
-          console.log "[CacheController] #{new Date()} \t\tuploading locale cache to S3"
-          @s3Backer.streamUpload repo_name, cacheKey, pathToFile, @getContentType(format)
-          
-        .then ( s3_down_stream )=>
-          console.log "[CacheController] #{new Date()} \t\treturning generated S3 cache stream "
-          deferred.resolve s3_down_stream
-
-        .catch ( err )=>
-          console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "
-          deferred.reject err
+      down_stream_promise = @tryGenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format )
 
     else
       console.log "[CacheController] #{new Date()} \t\tlocal cache exist"
-      @s3Backer.streamUpload( repo_name, cacheKey, pathToFile, @getContentType(format) )
-        .then ( s3_down_stream )=> # When S3 cache exists
-          console.log "[CacheController] #{new Date()} \t\treturning S3 cache stream "
-          deferred.resolve s3_down_stream
+      down_stream_promise = @s3Backer.streamUpload( repo_name, cacheKey, pathToFile, @getContentType(format) )
+
+    down_stream_promise
+      .then ( s3_down_stream )=> # When S3 cache exists
+        console.log "[CacheController] #{new Date()} \t\treturning S3 cache stream "
+        deferred.resolve s3_down_stream
+
+      .catch ( err )=>
+        console.log "[CacheController] #{new Date()} \t\terror generating S3 cache stream "
+        deferred.reject err
+
+    deferred.promise
+
+  # Description: given the necessary details attempts to generate local cache 
+  #   and then to generate the S3 cache
+  #   and then fetch the S3 Stream Object
+  #
+  # Params:
+  #   repo_name:String
+  #   krake:Object
+  #   query_obj:Object
+  #   format:String
+  #
+  # Returns
+  #   Promise:Object
+  #     resolve:function( download_stream )
+  #
+  tryGenerateLocalAndS3Cache: ( repo_name, krake, query_obj, query_string, format )->
+    console.log "[CacheController] #{new Date()} \t\ttrying to generate local cache and then S3 cache"
+    deferred = Q.defer()
+
+    cacheKey = @getCacheKey repo_name, query_string
+    pathToFile = @cachePath + cacheKey + "." + format
+
+    @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
+      .then ()=>
+        console.log "[CacheController] #{new Date()} \t\tuploading locale cache to S3"
+        @s3Backer.streamUpload repo_name, cacheKey, pathToFile, @getContentType(format)
+        
+      .then ( s3_down_stream )=>
+        console.log "[CacheController] #{new Date()} \t\treturning generated S3 cache stream "
+        deferred.resolve s3_down_stream
+
+      .catch ( err )=>
+        console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "
+        deferred.reject err
 
     deferred.promise
 
@@ -104,7 +177,28 @@ class CacheController
         "text/html; charset=utf-8"
       when 'csv'
         "text/csv; charset=utf-8"
-  
+
+  # Checks if we should generate the local cache
+  #
+  # Returns: Boolean
+  #
+  shouldRegenerateLocalCache: ( pathToFile, query_obj )->
+    return !fs.existsSync(pathToFile) || query_obj.$fresh
+
+  # Checks if the local cache exists in the file system
+  #
+  # Returns: Boolean
+  #
+  localCacheDoesNotExist: ( pathToFile )->
+    return !fs.existsSync(pathToFile)
+
+  # Checks if we must do a hard refresh of the local cache
+  #
+  # Returns: Boolean
+  #
+  mustRegenerateLocalCache: (query_obj) ->
+    return query_obj.$fresh
+
   # @Description : returns the path to the cached record 
   #
   # Params:
@@ -127,7 +221,7 @@ class CacheController
         cacheKey = @getCacheKey repo_name, query
         pathToFile = @cachePath + cacheKey + "." + format
             
-        if (!fs.existsSync(pathToFile) || query_obj.$fresh) 
+        if shouldRegenerateLocalCache( pathToFile, query_obj )
           @generateCache repo_name, columns, urlColumns, query, format, (err)=>
             callback && callback err, pathToFile
             if err 
@@ -286,42 +380,30 @@ class CacheController
 
     pathToFile = @cachePath + @getCacheKey(repo_name, query) + "." + format
     
-    cbSuccess = ()=>
-      switch format
-        when 'json'
-          query = 'Copy ( select array_to_json(array_agg( row_to_json(row))) from (' +
-            query + ") row ) To '" + pathToFile + "' With NULL '[]';"
-
-        when 'csv'
-          query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
-
-      @dbRepo.query(query).then(
-        (results)=>
-          switch format
-            when 'json', 'csv' 
-              deferred.resolve true
-              callback && callback null
-              
-            when 'html'
-              @writeHtmlToCache results, columns, urlColumns, pathToFile, (status)->
-              callback && callback null     
-              deferred.resolve true
-              
-          
-      ).catch(
-        (e)=>
-          console.log "Error occured while fetching records\nError: %s ", e
-          callback && callback e
-          deferred.reject e
-      )
-      
-    cbFailure = (error)=>
-      console.log "rational db connection failure.\n Error message := " + error  
-      callback && callback error
-      deferred.reject error
-
     model = @dbRepo.define repo_name, @modelBody
-    model.sync().then(cbSuccess).catch(cbFailure)
+    model.sync()
+      .then ()=>
+        switch format
+          when 'json'
+            query = 'Copy ( select array_to_json(array_agg( row_to_json(row))) from (' +
+              query + ") row ) To '" + pathToFile + "' With NULL '[]';"
+
+          when 'csv'
+            query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
+
+        @dbRepo.query(query)
+
+      .then (results)=>
+        if format == 'html'
+          @writeHtmlToCache results, columns, urlColumns, pathToFile, (status)->
+
+        deferred.resolve( pathToFile )
+        callback && callback null
+
+      .catch (error)=>
+        console.log "rational db connection failure.\n Error message := " + error  
+        callback && callback error
+        deferred.reject error    
 
     deferred.promise
 
