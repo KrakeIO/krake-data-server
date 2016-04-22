@@ -31,7 +31,7 @@ class CacheController
           pathToFile = @cachePath + cacheKey + "." + format
 
           if (!fs.existsSync(pathToFile) || query_obj.$fresh)
-            @generateCache repo_name, columns, urlColumns, query, format, (err)=>
+            @generateCache repo_name, krake.columns, krake.url_columns, query, format, (err)=>
               @s3Backer.getS3CacheStream( repo_name, cacheKey, pathToFile, @getContentType(format) )
                 .then ( s3_down_stream )=> # When S3 cache exists
                   callback && callback null, s3_down_stream
