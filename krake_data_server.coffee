@@ -153,15 +153,15 @@ app.get '/:data_repository/:format', (req, res)=>
         .then ( down_stream )=>
           if req.params.format == 'json' 
             res.header "Content-Type", "application/json; charset=utf-8"
-            res.header 'Content-Disposition', 'inline; attachment;filename=' + data_repository + '.csv'
+            res.header 'Content-Disposition', 'inline; filename=' + data_repository + '.csv'
 
           if req.params.format == 'html' 
             res.header "Content-Type", "text/html; charset=utf-8"
-            res.header 'Content-Disposition', 'inline; attachment;filename=' + data_repository + '.html'
+            res.header 'Content-Disposition', 'inline; filename=' + data_repository + '.html'
 
           else if req.params.format == 'csv'
             res.header "Content-Type", "text/csv; charset=utf-8"
-            res.header 'Content-Disposition', 'attachment; attachment;filename=' + data_repository + '.csv'
+            res.header 'Content-Disposition', 'attachment; filename=' + data_repository + '.csv'
 
           down_stream.pipe res
 
