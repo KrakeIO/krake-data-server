@@ -298,7 +298,10 @@ class CacheController
       @dbRepo.query(query).then(
         (results)=>
           switch format
-            when 'json', 'csv' then callback && callback null
+            when 'json', 'csv' 
+              deferred.resolve true
+              callback && callback null
+              
             when 'html'
               @writeHtmlToCache results, columns, urlColumns, pathToFile, (status)->
               callback && callback null     
