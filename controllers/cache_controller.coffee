@@ -114,7 +114,7 @@ class CacheController
     cacheKey = @getCacheKey repo_name, query_string
     pathToFile = @cachePath + cacheKey + "." + format
 
-    if localCacheDoesNotExist( pathToFile )
+    if @localCacheDoesNotExist( pathToFile )
       console.log "[CacheController] #{new Date()} \t\tlocal cache does not exist"
       down_stream_promise = @tryGenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format )
 
