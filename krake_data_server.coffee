@@ -152,16 +152,16 @@ app.get '/:data_repository/:format', (req, res)=>
       cm.getCacheStream data_repository, km, query_obj, req.params.format
         .then ( down_stream )=>
           if req.params.format == 'json' 
-            res.header "Content-Type", "application/json; charset=utf-8"
-            res.header 'Content-Disposition', 'inline; filename=' + data_repository + '.csv'
+            res.header "Content-type", "application/json; charset=utf-8"
+            res.header 'Content-disposition', 'inline; filename=' + data_repository + '.csv'
 
           if req.params.format == 'html' 
-            res.header "Content-Type", "text/html; charset=utf-8"
-            res.header 'Content-Disposition', 'inline; filename=' + data_repository + '.html'
+            res.header "Content-type", "text/html; charset=utf-8"
+            res.header 'Content-disposition', 'inline; filename=' + data_repository + '.html'
 
           else if req.params.format == 'csv'
-            res.header "Content-Type", "text/csv; charset=utf-8"
-            res.header 'Content-Disposition', 'attachment; filename=' + data_repository + '.csv'
+            res.header "Content-type", "text/csv; charset=utf-8"
+            res.header 'Content-disposition', 'attachment; filename=' + data_repository + '.csv'
 
           down_stream.pipe res
 
