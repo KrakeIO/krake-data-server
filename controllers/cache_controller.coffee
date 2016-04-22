@@ -169,6 +169,12 @@ class CacheController
 
     deferred.promise
 
+  getValidFormat: (format)->
+    if format in ["json", "html", "csv"]
+      format
+    else
+      "json"
+
   getContentType: (format)->
     console.log "[CacheController] #{new Date()} \t\tgetting content type for #{format}"
     switch format

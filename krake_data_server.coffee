@@ -145,14 +145,16 @@ app.get '/:data_repository/:format', (req, res)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
-        if req.params.format == 'json' 
+      format = cm.getValidFormat req.params.format
+
+      cm.getCache data_repository, km, query_obj, format, (error, path_to_cache)=>
+        if format == 'json' 
           res.header "Content-Type", "application/json; charset=utf-8"
 
-        if req.params.format == 'html' 
+        if format == 'html' 
           res.header "Content-Type", "text/html; charset=utf-8"
 
-        else if req.params.format == 'csv'
+        else if format == 'csv'
           res.header "Content-Type", "text/csv; charset=utf-8"
           res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.csv'
 
@@ -168,9 +170,11 @@ app.get '/stream/:data_repository/:format', (req, res)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      cm.getCacheStream data_repository, km, query_obj, req.params.format
+      format = cm.getValidFormat req.params.format
+
+      cm.getCacheStream data_repository, km, query_obj, format
         .then ( down_stream )=>
-          res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.' + req.params.format
+          res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.' + format
           down_stream.pipe res
 
         .catch ( err )=>
