@@ -134,39 +134,6 @@ app.get '/:data_repository/schema', (req, res)=>
         index_columns: km.index_columns || []      
       res.send response
 
-
-# @Description : Returns an array of JSON/CSV results based on query parameters
-app.get '/legacy/:data_repository/:format', (req, res)=>
-
-  if !cm.isValidFormat( req.params.format )
-    res.status(400).send { 
-      status: "failed", 
-      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
-    }
-    return  
-
-  data_repository = req.params.data_repository
-  unescape        = new UnescapeStream()
-  
-  mfc.getModel data_repository, (FactoryModel)=>
-    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
-      console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
-      query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
-        if req.params.format == 'json' 
-          res.header "Content-Type", "application/json; charset=utf-8"
-
-        if req.params.format == 'html' 
-          res.header "Content-Type", "text/html; charset=utf-8"
-
-        else if req.params.format == 'csv'
-          res.header "Content-Type", "text/csv; charset=utf-8"
-          res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.csv'
-
-        fs.createReadStream(path_to_cache)
-          .pipe unescape
-          .pipe res
-
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
   
