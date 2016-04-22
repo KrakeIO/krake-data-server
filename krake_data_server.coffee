@@ -141,7 +141,7 @@ app.get '/:data_repository/:format', (req, res)=>
   if !cm.isValidFormat( req.params.format )
     res.status(400).send { 
       status: "failed", 
-      message: " #{req.params.format} is not a recognized format, only the following formats are recognized: json, csv, html" 
+      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
     }
     return  
 
@@ -173,7 +173,7 @@ app.get '/stream/:data_repository/:format', (req, res)=>
   if !cm.isValidFormat( req.params.format )
     res.status(400).send { 
       status: "failed", 
-      message: " #{req.params.format} is not a recognized format, only the following formats are recognized: json, csv, html" 
+      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
     }
     return
 
