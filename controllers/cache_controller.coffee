@@ -18,13 +18,17 @@ class CacheController
 
   getCacheStream: (repo_name, krake, query_obj, format, callback)->
     if !@s3Backer
+      console.log "[CacheController] #{new Date()} S3 extension does not exist"
       @getCache repo_name, krake, query_obj, format, ( err, path_to_cache )=>
         if err
+          console.log "[CacheController] #{new Date()} \tGenerating cache failed"
           callback && callback err, null
         else
+          console.log "[CacheController] #{new Date()} \tGenerating cache succeeded"
           callback && callback null, fs.createReadStream( path_to_cache )
 
     else
+      console.log "[CacheController] #{new Date()} S3 extension exist"
       @getSqlQuery(repo_name, krake, query_obj)
         .then (query)=>
           cacheKey = @getCacheKey repo_name, query
@@ -35,6 +39,11 @@ class CacheController
               @s3Backer.getS3CacheStream( repo_name, cacheKey, pathToFile, @getContentType(format) )
                 .then ( s3_down_stream )=> # When S3 cache exists
                   callback && callback null, s3_down_stream
+
+          else
+            @s3Backer.getS3CacheStream( repo_name, cacheKey, pathToFile, @getContentType(format) )
+              .then ( s3_down_stream )=> # When S3 cache exists
+                callback && callback null, s3_down_stream            
 
   getContentType: (format)->
     switch format
