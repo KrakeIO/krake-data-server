@@ -47,7 +47,7 @@ class CacheController
       .then ( cache_exist )=>
         if cache_exist
           console.log "[CacheController] #{new Date()} \t\tS3 cache exists"
-          download_stream_obj = @s3Backer.getDownloadStreamObject task_key, file_name, content_type
+          download_stream_obj = @s3Backer.getDownloadStreamObject repo_name, cacheKey, @getContentType(format)
           deferred.resolve download_stream_obj
           broken_promise = Q.defer().promise
 
