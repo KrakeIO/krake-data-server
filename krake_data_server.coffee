@@ -151,6 +151,7 @@ app.get '/:data_repository/:format', (req, res)=>
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
       cm.getCacheStream data_repository, km, query_obj, req.params.format
         .then ( down_stream )=>
+          console.log "[DATA_SERVER] #{new Date()} format type: #{req.params.format}"
           if req.params.format == 'json' 
             console.log "[DATA_SERVER] #{new Date()} Setting headers for json type"
             res.header "Content-type", "application/json; charset=utf-8"
