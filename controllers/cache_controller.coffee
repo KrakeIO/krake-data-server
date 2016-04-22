@@ -170,6 +170,7 @@ class CacheController
     deferred.promise
 
   getContentType: (format)->
+    console.log "[CacheController] #{new Date()} \t\tgetting content type for #{format}"
     switch format
       when 'json'
         "application/json; charset=utf-8"
