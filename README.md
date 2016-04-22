@@ -247,9 +247,16 @@ npm install coffee-script -g
 ### Configuration
 Write the following lines in your ~/.bashrc file
 ```console
+# Postgresql Database connection
 export KRAKE_PG_USERNAME='your_username'
 export KRAKE_PG_PASSWORD='your_password'
 export KRAKE_PG_HOST='your_host_location'
+
+# AWS S3 credentials
+export AWS_ACCESS_KEY=YOUR_ACCESS_KEY
+export AWS_SECRET_KEY=YOUR_SECRET_KEY
+export AWS_S3_REGION=YOUR_AWS_REGION
+export AWS_S3_BUCKET=YOUR_BUCKET_NAME
 ```
 
 ### Create databases
