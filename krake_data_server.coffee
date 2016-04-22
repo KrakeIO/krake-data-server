@@ -163,16 +163,18 @@ app.get '/:data_repository/:format', (req, res)=>
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/stream/:data_repository/:format', (req, res)=>
   
-  data_repository = req.params.data_repository
-  unescape        = new UnescapeStream()
-  
+  data_repository = req.params.data_repository  
   mfc.getModel data_repository, (FactoryModel)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      cm.getCacheStream data_repository, km, query_obj, req.params.format, (error, down_stream)=>
-        res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.' + req.params.format
-        down_stream.pipe res
+      cm.getCacheStream data_repository, km, query_obj, req.params.format
+        .then ( down_stream )=>
+          res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.' + req.params.format
+          down_stream.pipe res
+
+        .catch ( err )=>
+          res.send err
 
 # @Description : Copies all records from data_repository over to dataset_repository
 app.get '/connect/:data_repository/:dataset_repository', (req, res)=>

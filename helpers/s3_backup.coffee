@@ -19,15 +19,15 @@ class S3Backup
   getS3CacheStream : ( task_key, file_name, path_to_file, content_type )->
     deferred = Q.defer()
     @cacheExist( task_key, file_name )
-      .then ()=> # When S3 cache exists
-        console.log "[S3Backup] #{new Date()} \t\tReturned download stream"      
-        download_stream_obj = @getDownloadStreamObject task_key, file_name, content_type
-        deferred.resolve download_stream_obj
-
-      .catch ()=>  # When S3 cache does not exist
-        console.log "[S3Backup] #{new Date()} \t\tGenerating S3 cache"
-        download_stream_obj = @streamUpload task_key, file_name, path_to_file, content_type
-        deferred.resolve download_stream_obj
+      .then ( cache_exists )=> # When S3 cache exists
+        if cache_exists
+          console.log "[S3Backup] #{new Date()} \t\tReturned download stream"      
+          download_stream_obj = @getDownloadStreamObject task_key, file_name, content_type
+          deferred.resolve download_stream_obj
+        else
+          console.log "[S3Backup] #{new Date()} \t\tGenerating S3 cache"
+          download_stream_obj = @streamUpload task_key, file_name, path_to_file, content_type
+          deferred.resolve download_stream_obj
 
     deferred.promise
 
@@ -98,10 +98,10 @@ class S3Backup
       (err, res) ->
         if (err)
           console.log "it does not exist"
-          deferred.reject err
+          deferred.resolve false
         else
           console.log "it exists"
-          deferred.resolve res
+          deferred.resolve true
     )
     deferred.promise
 
