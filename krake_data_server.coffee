@@ -174,6 +174,7 @@ app.get '/stream/:data_repository/:format', (req, res)=>
           down_stream.pipe res
 
         .catch ( err )=>
+          console.log err
           res.send err
 
 # @Description : Copies all records from data_repository over to dataset_repository
