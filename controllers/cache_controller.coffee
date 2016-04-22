@@ -37,7 +37,7 @@ class CacheController
     deferred.promise
 
   tryFetchCacheFromS3: ( repo_name, krake, query_obj, query_string, format )->
-    console.log "[CacheController] #{new Date()} \t\tfetching Cache from S3"
+    console.log "[CacheController] #{new Date()} \t\ttrying to fetch cache from S3"
     deferred = Q.defer()
 
     cacheKey = @getCacheKey repo_name, query_string
