@@ -137,7 +137,14 @@ app.get '/:data_repository/schema', (req, res)=>
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
-  
+
+  if !cm.isValidFormat( req.params.format )
+    res.send { 
+      status: "failed", 
+      message: " #{req.params.format} is not a recognized format, only the following formats are recognized: json, csv, html" 
+    }
+    return  
+
   data_repository = req.params.data_repository
   unescape        = new UnescapeStream()
   
@@ -145,16 +152,14 @@ app.get '/:data_repository/:format', (req, res)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      format = cm.getValidFormat req.params.format
-
-      cm.getCache data_repository, km, query_obj, format, (error, path_to_cache)=>
-        if format == 'json' 
+      cm.getCache data_repository, km, query_obj, req.params.format, (error, path_to_cache)=>
+        if req.params.format == 'json' 
           res.header "Content-Type", "application/json; charset=utf-8"
 
-        if format == 'html' 
+        if req.params.format == 'html' 
           res.header "Content-Type", "text/html; charset=utf-8"
 
-        else if format == 'csv'
+        else if req.params.format == 'csv'
           res.header "Content-Type", "text/csv; charset=utf-8"
           res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.csv'
 
@@ -165,16 +170,21 @@ app.get '/:data_repository/:format', (req, res)=>
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/stream/:data_repository/:format', (req, res)=>
   
+  if !cm.isValidFormat( req.params.format )
+    res.send { 
+      status: "failed", 
+      message: " #{req.params.format} is not a recognized format, only the following formats are recognized: json, csv, html" 
+    }
+    return
+
   data_repository = req.params.data_repository  
   mfc.getModel data_repository, (FactoryModel)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      format = cm.getValidFormat req.params.format
-
-      cm.getCacheStream data_repository, km, query_obj, format
+      cm.getCacheStream data_repository, km, query_obj, req.params.format
         .then ( down_stream )=>
-          res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.' + format
+          res.header 'Content-Disposition', 'attachment;filename=' + data_repository + '.' + req.params.format
           down_stream.pipe res
 
         .catch ( err )=>
