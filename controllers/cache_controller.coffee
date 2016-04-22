@@ -124,7 +124,7 @@ class CacheController
 
     down_stream_promise
       .then ( s3_down_stream )=> # When S3 cache exists
-        console.log "[CacheController] #{new Date()} \t\treturning S3 cache stream "
+        console.log "[CacheController] #{new Date()} \t\treturning generated S3 cache stream "
         deferred.resolve s3_down_stream
 
       .catch ( err )=>
@@ -221,7 +221,7 @@ class CacheController
         cacheKey = @getCacheKey repo_name, query
         pathToFile = @cachePath + cacheKey + "." + format
             
-        if shouldRegenerateLocalCache( pathToFile, query_obj )
+        if @shouldRegenerateLocalCache( pathToFile, query_obj )
           @generateCache repo_name, columns, urlColumns, query, format, (err)=>
             callback && callback err, pathToFile
             if err 
