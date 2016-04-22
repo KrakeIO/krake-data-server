@@ -136,7 +136,7 @@ app.get '/:data_repository/schema', (req, res)=>
 
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
-app.get '/legacy/:data_repository/:format', (req, res)=>
+app.get '/:data_repository/:format', (req, res)=>
 
   if !cm.isValidFormat( req.params.format )
     res.status(400).send { 
@@ -168,7 +168,7 @@ app.get '/legacy/:data_repository/:format', (req, res)=>
           .pipe res
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
-app.get '/:data_repository/:format', (req, res)=>
+app.get '/stream/:data_repository/:format', (req, res)=>
   
   if !cm.isValidFormat( req.params.format )
     res.status(400).send { 
