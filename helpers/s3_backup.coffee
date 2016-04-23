@@ -60,10 +60,10 @@ class S3Backup
 
     s3obj.upload({ Body: body })
       .on('httpUploadProgress', (evt) => 
-        # console.log(evt)
+        console.log(evt)
 
       ).send( (err, data) => 
-        # console.log(err, data) 
+        console.log(err, data) 
         download_stream_obj = @getDownloadStreamObject( task_key, file_name, content_type  )
         deferred.resolve download_stream_obj
       )
