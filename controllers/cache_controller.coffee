@@ -38,9 +38,11 @@ class CacheController
       .then ( query_string )=>
         console.log "[CacheController] #{new Date()} \t\tQuery String generated"      
         if @mustRegenerateLocalCache( query_obj )
+          console.log "[CacheController] #{new Date()} \t\tforced to regenerate cache"      
           @tryGenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format )
 
         else
+          console.log "[CacheController] #{new Date()} \t\tchecking from cache"
           @tryFetchCacheFromS3( repo_name, krake, query_obj, query_string, format )
 
       .then ( cache_stream )=>
