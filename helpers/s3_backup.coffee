@@ -22,11 +22,11 @@ class S3Backup
       .then ( cache_exists )=> # When S3 cache exists
         if cache_exists
           console.log "[S3Backup] #{new Date()} \t\tReturned download stream"      
-          download_stream_obj = @getDownloadStreamObject task_key, file_name, content_type
+          download_stream_obj = @getDownloadStreamObject task_key, file_name
           deferred.resolve download_stream_obj
         else
           console.log "[S3Backup] #{new Date()} \t\tGenerating S3 cache"
-          download_stream_obj = @streamUpload task_key, file_name, path_to_file, content_type
+          download_stream_obj = @streamUpload task_key, file_name, path_to_file
           deferred.resolve download_stream_obj
 
     deferred.promise
@@ -47,7 +47,7 @@ class S3Backup
   #     Success:Function 
   #       
   #
-  streamUpload: ( task_key, file_name, path_to_file, content_type )->
+  streamUpload: ( task_key, file_name, path_to_file )->
     deferred = Q.defer()
     unescape = new UnescapeStream()
 
@@ -64,13 +64,13 @@ class S3Backup
 
       ).send( (err, data) => 
         console.log(err, data) 
-        download_stream_obj = @getDownloadStreamObject( task_key, file_name, content_type  )
+        download_stream_obj = @getDownloadStreamObject( task_key, file_name  )
         deferred.resolve download_stream_obj
       )
 
     deferred.promise
 
-  getDownloadStreamObject: ( task_key, file_name, content_type )->
+  getDownloadStreamObject: ( task_key, file_name )->
     params =
       Key: task_key + "/" + file_name
 
@@ -115,11 +115,22 @@ if !module.parent
   bucket_name = process.env['AWS_S3_BUCKET']
 
   sb = new S3Backup( access_key, secret_key, region, bucket_name )
-  sb.getS3CacheStream(
-    "n468_4e93c2fc0dd9aceadf57e0756571232aeses", 
-    "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
-    "/tmp/krake_data_cache/n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
-    "application/json; charset=utf-8"
-  ).then ( s3_down_stream )->
-    console.log("Printing out the object that we sent to S3")
-    s3_down_stream.pipe(process.stdout)
+  # sb.getS3CacheStream(
+  #   "n468_4e93c2fc0dd9aceadf57e0756571232aeses", 
+  #   "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
+  #   "/tmp/krake_data_cache/n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
+  #   "application/json; charset=utf-8"
+  # ).then ( s3_down_stream )->
+  #   console.log("Printing out the object that we sent to S3")
+  #   s3_down_stream.pipe(process.stdout)
+  task_key = "n473_35c2e0826e57195a24ed01752436b65eeses"
+  file_name = "n473_35c2e0826e57195a24ed01752436b65eeses_423a711741650c2749769f9c295950a1.json"
+  path_to_file = "/Users/garyjob/Applications/krake_data/helpers/batch_test_file.json"
+  content_type = "json"
+
+  sb.streamUpload( task_key, file_name, path_to_file )
+    .then ( s3_down_stream )=>
+      console.log "[CacheController] #{new Date()} \t\treturning generated S3 cache stream "
+
+    .catch ( err )=>
+      console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "

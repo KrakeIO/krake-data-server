@@ -77,7 +77,7 @@ class CacheController
       .then ( cache_exist )=>
         if cache_exist
           console.log "[CacheController] #{new Date()} \t\tS3 cache exists"
-          download_stream_obj = @s3Backer.getDownloadStreamObject repo_name, s3CacheKey, @getContentType(format)
+          download_stream_obj = @s3Backer.getDownloadStreamObject repo_name, s3CacheKey
           deferred.resolve download_stream_obj
           broken_promise = Q.defer().promise
 
@@ -122,7 +122,7 @@ class CacheController
 
     else
       console.log "[CacheController] #{new Date()} \t\tlocal cache exist"
-      down_stream_promise = @s3Backer.streamUpload( repo_name, s3CacheKey, pathToFile, @getContentType(format) )
+      down_stream_promise = @s3Backer.streamUpload( repo_name, s3CacheKey, pathToFile )
 
     down_stream_promise
       .then ( s3_down_stream )=> # When S3 cache exists
@@ -160,7 +160,7 @@ class CacheController
     @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
         console.log "[CacheController] #{new Date()} \t\tuploading locale cache to S3"
-        @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile, @getContentType(format)
+        @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile
         
       .then ( s3_down_stream )=>
         console.log "[CacheController] #{new Date()} \t\treturning generated S3 cache stream "
