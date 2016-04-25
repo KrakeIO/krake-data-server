@@ -125,7 +125,7 @@ if !module.parent
   #   s3_down_stream.pipe(process.stdout)
   task_key = "n473_35c2e0826e57195a24ed01752436b65eeses"
   file_name = "n473_35c2e0826e57195a24ed01752436b65eeses_423a711741650c2749769f9c295950a1.json"
-  path_to_file = "/Users/garyjob/Applications/krake_data/helpers/batch_test_file.json"
+  path_to_file = "./batch_test_file.json"
   content_type = "json"
 
   sb.streamUpload( task_key, file_name, path_to_file )
