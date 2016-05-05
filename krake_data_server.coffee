@@ -129,6 +129,7 @@ app.get '/:data_repository/schema', (req, res)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source schema — #{req.params.data_repository}"
       response = 
+        domain:        km.domain
         columns:       km.columns || []
         url_columns:   km.url_columns || []
         index_columns: km.index_columns || []      
