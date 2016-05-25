@@ -155,7 +155,7 @@ class CacheController
         console.log "[CacheController] #{new Date()} \t\tuploading locale cache to S3 and returning local stream"
         local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
         deferred.resolve local_cache_stream
-        @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile        
+        # @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile        
 
       .catch ( err )=>
         console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "
