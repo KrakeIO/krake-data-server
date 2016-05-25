@@ -48,7 +48,6 @@ class CacheController
     #     console.log "[CacheController] #{new Date()} \t\tfailed to get Cache Stream"
     #     deferred.reject err
 
-    Disabled until further notice
     query_promise
       .then ( query_string )=>
         console.log "[CacheController] #{new Date()} \t\tQuery String generated"      
