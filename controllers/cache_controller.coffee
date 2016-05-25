@@ -157,7 +157,7 @@ class CacheController
     @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
         console.log "[CacheController] #{new Date()} \t\tuploading locale cache to S3 and returning local stream"
-        @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile
+        # @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile
         local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
         deferred.resolve local_cache_stream
 
