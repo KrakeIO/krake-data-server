@@ -117,6 +117,7 @@ class CacheController
     cacheKey = @getCacheKey repo_name, query_string
     s3CacheKey = cacheKey + "." + format
     pathToFile = @cachePath + cacheKey + "." + format
+    unescape = new UnescapeStream()
 
     @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
