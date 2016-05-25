@@ -112,7 +112,7 @@ class CacheController
     deferred.promise
 
   tryFetchCacheFromLocalOnly: ( repo_name, krake, query_obj, query_string, format )->
-    console.log "[CacheController] #{new Date()} \t\ttrying to generate local cache and then S3 cache"
+    console.log "[CacheController] #{new Date()} \t\ttrying to generate only from local cache"
     deferred = Q.defer()
 
     cacheKey = @getCacheKey repo_name, query_string
