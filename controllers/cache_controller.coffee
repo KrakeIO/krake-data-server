@@ -96,15 +96,11 @@ class CacheController
           console.log "[CacheController] #{new Date()} \t\tS3 cache exists"
           download_stream_obj = @s3Backer.getDownloadStreamObject repo_name, s3CacheKey
           deferred.resolve download_stream_obj
-          broken_promise = Q.defer().promise
 
         else
           console.log "[CacheController] #{new Date()} \t\tS3 cache does not exist"
-          @regenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format )
-
-      .then ( download_stream_obj )=>
-        console.log "[CacheController] #{new Date()} \t\treturning S3 cache stream "
-        deferred.resolve download_stream_obj
+          @regenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format ).then ( download_stream_obj )=>
+            deferred.resolve download_stream_obj
 
       .catch (err)=>
         console.log "[CacheController] #{new Date()} \t\terror fetching s3 cache stream "
@@ -157,13 +153,13 @@ class CacheController
     @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
         console.log "[CacheController] #{new Date()} \t\tuploading locale cache to S3 and returning local stream"
-        # @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile
         local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
         deferred.resolve local_cache_stream
+        @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile        
 
       .catch ( err )=>
         console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "
-        deferred.reject err
+        # deferred.reject err
 
     deferred.promise
 
