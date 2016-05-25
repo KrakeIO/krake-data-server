@@ -39,16 +39,17 @@ class CacheController
     query_promise
       .then ( query_string )=>
         console.log "[CacheController] #{new Date()} \t\tQuery String generated"      
-        @tryFetchCacheFromLocalOnly( repo_name, krake, query_obj, query_string, format )
+        if @isHardRefresh( query_obj )
+          console.log "[CacheController] #{new Date()} \t\tforced to regenerate cache"      
+          @tryRefreshAndFetchLocalCacheStreamObject( repo_name, krake, query_obj, query_string, format )
 
-        # console.log "[CacheController] #{new Date()} \t\tQuery String generated"      
-        # if @mustRegenerateLocalCache( query_obj )
-        #   console.log "[CacheController] #{new Date()} \t\tforced to regenerate cache"      
-        #   @regenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format )
+        else if !@localCacheExists( repo_name, query_string, format)
+          console.log "[CacheController] #{new Date()} \t\tlocal cache does not exists. Generating it now"
+          @tryRefreshAndFetchLocalCacheStreamObject( repo_name, krake, query_obj, query_string, format )        
 
-        # else
-        #   console.log "[CacheController] #{new Date()} \t\tchecking from cache"
-        #   @tryFetchCacheFromS3( repo_name, krake, query_obj, query_string, format )
+        else if @localCacheExists( repo_name, query_string, format )
+          console.log "[CacheController] #{new Date()} \t\tlocal cache exists. Return it"
+          @tryFetchLocalCacheStreamObject( repo_name, query_string, format )
 
       .then ( cache_stream )=>
         console.log "[CacheController] #{new Date()} \t\tgot Cache Stream"
@@ -60,57 +61,26 @@ class CacheController
 
     deferred.promise
 
-  # Description: given the necessary details attempts to fetch the S3 Stream Object
-  #   if the S3 cache does not exists, generates the S3 cache while returning the newly generated local cache
+  # @Description : returns a promise that resolves to the stream object that reads from the local cache
+  #   Forcefully generates the local cache even if it exists
   #
   # Params:
   #   repo_name:String
-  #   krake:Object
-  #   query_obj:Object
-  #   format:String
+  #   query_string:Object
+  #   format:string
   #
-  # Returns
+  # Returns:
   #   Promise:Object
-  #     resolve:function( download_stream )
+  #     resolve( promise: Promise )
   #
-  tryFetchCacheFromS3: ( repo_name, krake, query_obj, query_string, format )->
-    console.log "[CacheController] #{new Date()} \t\ttrying to fetch cache from S3"
-    deferred = Q.defer()
-
-    cacheKey = @getCacheKey repo_name, query_string
-    s3CacheKey = cacheKey + "." + format
-    pathToFile = @cachePath + cacheKey + "." + format
-
-    @s3Backer.cacheExist( repo_name, s3CacheKey )
-      .then ( cache_exist )=>
-        if cache_exist
-          console.log "[CacheController] #{new Date()} \t\tS3 cache exists"
-          download_stream_obj = @s3Backer.getDownloadStreamObject repo_name, s3CacheKey
-          deferred.resolve download_stream_obj
-
-        else
-          console.log "[CacheController] #{new Date()} \t\tS3 cache does not exist"
-          @regenerateLocalAndS3Cache( repo_name, krake, query_obj, query_string, format ).then ( download_stream_obj )=>
-            deferred.resolve download_stream_obj
-
-      .catch (err)=>
-        console.log "[CacheController] #{new Date()} \t\terror fetching s3 cache stream "
-        deferred.reject err
-
-    deferred.promise
-
-  tryFetchCacheFromLocalOnly: ( repo_name, krake, query_obj, query_string, format )->
+  tryRefreshAndFetchLocalCacheStreamObject: ( repo_name, krake, query_obj, query_string, format )->
     console.log "[CacheController] #{new Date()} \t\ttrying to generate only from local cache"
     deferred = Q.defer()
-
-    cacheKey = @getCacheKey repo_name, query_string
-    s3CacheKey = cacheKey + "." + format
-    pathToFile = @cachePath + cacheKey + "." + format
     
-
     @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
         unescape = new UnescapeStream()
+        pathToFile = @getPathToLocalCache( repo_name, query_string, format )
         local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
         deferred.resolve local_cache_stream
 
@@ -118,44 +88,56 @@ class CacheController
         console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "
         deferred.reject err
 
-    deferred.promise    
+    deferred.promise
 
-  # Description: given the necessary details attempts to generate local cache 
-  #   and then to generate the S3 cache
-  #   and then fetch the Local Stream Object
+  # @Description : returns a promise that resolves to the stream object that reads from the local cache
+  #   Assumes the local cache already exists
   #
   # Params:
   #   repo_name:String
-  #   krake:Object
-  #   query_obj:Object
-  #   format:String
+  #   query_string:Object
+  #   format:string
+  #
+  # Returns:
+  #   Promise:Object
+  #     resolve( promise: Promise )
+  #
+  tryFetchLocalCacheStreamObject: ( repo_name, query_string, format )->
+    deferred = Q.defer()
+    deferred.resolve @getLocalCacheStreamObject( repo_name, query_string, format )
+    deferred.promise    
+
+  # @Description : returns the stream object that reads from the local cache.
+  #   Assumes the local cache already exists
+  #
+  # Params:
+  #   repo_name:String
+  #   query_string:Object
+  #   format:string
   #
   # Returns
-  #   Promise:Object
-  #     resolve:function( download_stream )
+  #   local_cache_stream:readStream
   #
-  regenerateLocalAndS3Cache: ( repo_name, krake, query_obj, query_string, format )->
-    console.log "[CacheController] #{new Date()} \t\ttrying to generate local cache and then S3 cache"
-    deferred = Q.defer()
+  getLocalCacheStreamObject: ( repo_name, query_string, format )->
+    pathToFile = @getPathToLocalCache( repo_name, query_string, format )
+    unescape = new UnescapeStream()
+    local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
 
+  # @Description : returns the path to the local cache
+  #   Assumes the local cache already exists
+  #
+  # Params:
+  #   repo_name:String
+  #   query_string:Object
+  #   format:string
+  #
+  # Returns
+  #   pathToFile:String
+  #
+  getPathToLocalCache: ( repo_name, query_string, format )->
     cacheKey = @getCacheKey repo_name, query_string
     s3CacheKey = cacheKey + "." + format
-    pathToFile = @cachePath + cacheKey + "." + format
-
-    @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
-      .then ()=>
-        console.log "[CacheController] #{new Date()} \t\tuploading locale cache to S3 and returning local stream"
-        unescape = new UnescapeStream()
-        local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
-        deferred.resolve local_cache_stream
-        @s3Backer.streamUpload repo_name, s3CacheKey, pathToFile        
-
-      .catch ( err )=>
-        console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "
-
-    deferred.promise
-
-
+    pathToFile = @cachePath + cacheKey + "." + format    
 
   isValidFormat: (format)->
     format in ["json", "html", "csv"]
@@ -170,66 +152,34 @@ class CacheController
       when 'csv'
         "text/csv; charset=utf-8"
 
-  # Checks if we should generate the local cache
-  #
-  # Returns: Boolean
-  #
-  shouldRegenerateLocalCache: ( pathToFile, query_obj )->
-    return !fs.existsSync(pathToFile) || query_obj.$fresh
-
-  # Checks if the local cache exists in the file system
-  #
-  # Returns: Boolean
-  #
-  localCacheDoesNotExist: ( pathToFile )->
-    return !fs.existsSync(pathToFile)
-
-  # Checks if we must do a hard refresh of the local cache
-  #
-  # Returns: Boolean
-  #
-  mustRegenerateLocalCache: (query_obj) ->
-    return query_obj.$fresh
-
-  # @Description : returns the path to the cached record 
+  # @Description : checks if the query object is forcing a hard refresh on the cache
   #
   # Params:
   #   repo_name:String
-  #   krake:KrakeModel
-  #   query_obj:Object
+  #   query_string:Object
   #   format:string
-  #   callback:function(error:string, pathToFile:string)
   #
   # Returns
-  #   promise:Object
+  #   exists:Boolean
   #
-  getCache: (repo_name, krake, query_obj, format, callback)->
-    deferred = Q.defer()
+  isHardRefresh: ( query_obj )->
+    return query_obj.$fresh
 
-    columns = krake.columns
-    urlColumns = krake.url_columns
-    @getSqlQuery(repo_name, krake, query_obj)
-      .then (query)=>
-        cacheKey = @getCacheKey repo_name, query
-        pathToFile = @cachePath + cacheKey + "." + format
-            
-        if @shouldRegenerateLocalCache( pathToFile, query_obj )
-          @generateCache repo_name, columns, urlColumns, query, format, (err)=>
-            callback && callback err, pathToFile
-            if err 
-              deferred.reject err
-            else
-              deferred.resolve pathToFile 
-          
-        else
-          deferred.resolve pathToFile 
-          callback && callback null, pathToFile
-
-      .catch (error)=>
-        console.log "getCache: " + error
-        deferred.reject error
-
-    deferred.promise
+  # @Description : checks if the local cache already exists. Returns true if it does, false otherwise
+  #
+  # Params:
+  #   repo_name:String
+  #   query_string:Object
+  #   format:string
+  #
+  # Returns
+  #   exists:Boolean
+  #
+  localCacheExists: (repo_name, query_string, format)->
+    cacheKey = @getCacheKey repo_name, query_string
+    s3CacheKey = cacheKey + "." + format
+    pathToFile = @cachePath + cacheKey + "." + format
+    return !fs.existsSync(pathToFile)
 
   # translates the query object to a valid SQL query string
   #
