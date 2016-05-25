@@ -120,7 +120,7 @@ class CacheController
 
     @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
-        local_cache_stream = fs.createReadStream( path_to_file ).pipe(unescape)
+        local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
         deferred.resolve local_cache_stream
 
       .catch ( err )=>
