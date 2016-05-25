@@ -4,6 +4,7 @@ exec = require('child_process').exec
 fs = require 'fs'
 kson = require 'kson'
 Q = require 'q'
+UnescapeStream  = require 'unescape-stream'
 
 class CacheController
   constructor: (@cachePath, @dbRepo, @modelBody, @s3Backer)->
