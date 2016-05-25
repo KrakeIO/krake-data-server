@@ -5,12 +5,7 @@ S3              = require('aws-sdk').S3
 UnescapeStream  = require 'unescape-stream'
 
 class S3Backup
-  constructor : ( aws_access_key, aws_secret, aws_region, @bucket_name )->
-    AWS.config.update { 
-      accessKeyId : aws_access_key
-      secretAccessKey : aws_secret
-      region : aws_region
-    }    
+  constructor : ( @bucket_name )->
     @s3bucket = new AWS.S3(
       params:
         Bucket: @bucket_name 
@@ -114,7 +109,13 @@ if !module.parent
   region      = process.env['AWS_S3_REGION'] 
   bucket_name = process.env['AWS_S3_BUCKET']
 
-  sb = new S3Backup( access_key, secret_key, region, bucket_name )
+  AWS.config.update { 
+    accessKeyId : access_key
+    secretAccessKey : secret_key
+    region : region
+  }
+
+  sb = new S3Backup( bucket_name )
   # sb.getS3CacheStream(
   #   "n468_4e93c2fc0dd9aceadf57e0756571232aeses", 
   #   "n468_4e93c2fc0dd9aceadf57e0756571232aeses_664df84dc3b97df6dac430ab49fa5e09.json", 
