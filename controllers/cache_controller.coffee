@@ -36,18 +36,6 @@ class CacheController
 
     query_promise = @getSqlQuery( repo_name, krake, query_obj )
 
-    # query_promise
-    #   .then ( query_string )=>
-    #     @tryFetchCacheFromLocalOnly( repo_name, krake, query_obj, query_string, format )
-
-    #   .then ( cache_stream )=>
-    #     console.log "[CacheController] #{new Date()} \t\tgot Cache Stream"
-    #     deferred.resolve cache_stream
-
-    #   .catch ( err )=>
-    #     console.log "[CacheController] #{new Date()} \t\tfailed to get Cache Stream"
-    #     deferred.reject err
-
     query_promise
       .then ( query_string )=>
         console.log "[CacheController] #{new Date()} \t\tQuery String generated"      
@@ -161,7 +149,6 @@ class CacheController
 
       .catch ( err )=>
         console.log "[CacheController] #{new Date()} \t\terror occurred generating s3 cache "
-        # deferred.reject err
 
     deferred.promise
 
