@@ -179,7 +179,7 @@ class CacheController
     cacheKey = @getCacheKey repo_name, query_string
     s3CacheKey = cacheKey + "." + format
     pathToFile = @cachePath + cacheKey + "." + format
-    return !fs.existsSync(pathToFile)
+    return fs.existsSync(pathToFile)
 
   # translates the query object to a valid SQL query string
   #
