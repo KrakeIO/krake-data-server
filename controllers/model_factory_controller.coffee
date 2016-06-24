@@ -19,7 +19,6 @@ class ModelFactoryController
 
     @Krake.count(query)
       .then (count)=>
-        console.log count
         is_true = count > 0
         callback && callback is_true
 

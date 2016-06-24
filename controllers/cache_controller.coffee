@@ -77,7 +77,7 @@ class CacheController
     console.log "[CacheController] #{new Date()} \t\ttrying to generate only from local cache"
     deferred = Q.defer()
     
-    @generateCache( repo_name, krake.columns, krake.url_columns, query_string, format )
+    @generateCache( repo_name, krake.record_model_body, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
         unescape = new UnescapeStream()
         pathToFile = @getPathToLocalCache( repo_name, query_string, format )
@@ -317,12 +317,13 @@ class CacheController
   # @param : query:string
   # @param : format:string
   # @param : callback:function(error:string)  
-  generateCache: (repo_name, columns, urlColumns, query, format, callback)->
+  generateCache: (repo_name, record_model_body, columns, urlColumns, query, format, callback)->
     deferred = Q.defer()
 
     pathToFile = @cachePath + @getCacheKey(repo_name, query) + "." + format
     
-    model = @dbRepo.define repo_name, @modelBody
+    record_body = record_model_body || @modelBody
+    model = @dbRepo.define repo_name, record_body
     model.sync()
       .then ()=>
         switch format

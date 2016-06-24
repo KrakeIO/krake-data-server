@@ -141,7 +141,7 @@ describe "KrakeModel", ->
 
   describe "compoundColNameWhere", ->
     it "should return correct common column name", (done)->
-      expect(@km.compoundColNameWhere "pingedAt").toBe '"pingedAt"'
+      expect(@km.compoundColNameWhere "pingedAt").toBe 'cast(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as text)'
       done()
 
     it "should return correct common column name with auto replacement for double quote", (done)->
@@ -552,7 +552,7 @@ describe "KrakeModel", ->
           pingedAt : "2013-07-06 02:57:09"
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" = '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09'"
       done()
 
     it "should return well formated '=' where condition for repository specific column", (done)->
@@ -570,7 +570,7 @@ describe "KrakeModel", ->
           pingedAt : { $contains : "2013-07-06 02:57:09" }
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" like '%2013-07-06 02:57:09%'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) like '%2013-07-06 02:57:09%'"
       done()
 
     it "should return well formated 'contains' where condition for repository specific column", (done)->
@@ -588,7 +588,7 @@ describe "KrakeModel", ->
           pingedAt : { $gt : "2013-07-06 02:57:09" }
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" > '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) > '2013-07-06 02:57:09'"
       done()      
 
     it "should return well formated '>' where condition for repository specific column", (done)->
@@ -606,7 +606,7 @@ describe "KrakeModel", ->
           pingedAt : { $gte : "2013-07-06 02:57:09" }
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" >= '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) >= '2013-07-06 02:57:09'"
       done()      
 
     it "should return well formated '>=' where condition for repository specific column", (done)->
@@ -624,7 +624,7 @@ describe "KrakeModel", ->
           pingedAt : { $lt : "2013-07-06 02:57:09" }
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" < '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) < '2013-07-06 02:57:09'"
       done()      
 
     it "should return well formated '<' where condition for repository specific column", (done)->
@@ -642,7 +642,7 @@ describe "KrakeModel", ->
           pingedAt : { $lte : "2013-07-06 02:57:09" }
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" <= '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) <= '2013-07-06 02:57:09'"
       done()      
 
     it "should return well formated '<=' where condition for repository specific column", (done)->
@@ -660,7 +660,7 @@ describe "KrakeModel", ->
           pingedAt : { $ne : "2013-07-06 02:57:09" }
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" != '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) != '2013-07-06 02:57:09'"
       done()      
 
     it "should return well formated '!=' where condition for repository specific column", (done)->
@@ -678,7 +678,7 @@ describe "KrakeModel", ->
           pingedAt : { $exist : true }
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" not NULL"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) not NULL"
       done()
 
     it "should return well formated 'not null' where condition for repository specific column", (done)->
@@ -698,7 +698,7 @@ describe "KrakeModel", ->
             updatedAt : "2013-07-06 02:57:09"
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "\"pingedAt\" = '2013-07-06 02:57:09' and \"updatedAt\" = '2013-07-06 02:57:09'"
+      expect(where_clause).toEqual "cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' and cast(to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09'"
       done()    
 
     it "should return well formated 'and' where condition for common column non nested", (done)->
@@ -711,7 +711,7 @@ describe "KrakeModel", ->
           }]
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "(\"pingedAt\" = '2013-07-06 02:57:09' and \"updatedAt\" = '2013-07-06 02:57:09')"
+      expect(where_clause).toEqual "(cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' and cast(to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09')"
       done()
 
     it "should return well formated 'and' where condition for repository specific column", (done)->
@@ -737,7 +737,7 @@ describe "KrakeModel", ->
           }]
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "(\"pingedAt\" = '2013-07-06 02:57:09' or \"updatedAt\" = '2013-07-06 02:57:09')"
+      expect(where_clause).toEqual "(cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' or cast(to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09')"
       done()
 
     it "should return well formated 'or' where condition for repository specific column", (done)->
@@ -767,7 +767,7 @@ describe "KrakeModel", ->
           }]
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "(\"pingedAt\" = '2013-07-06 02:57:09' and (\"updatedAt\" = '2013-07-06 02:57:09' and \"createdAt\" = '2013-07-06 02:57:09'))"
+      expect(where_clause).toEqual "(cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' and (cast(to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' and cast(to_char(\"createdAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09'))"
       done()
 
     it "should return well formated multi nested 'or' where condition for common column non nested", (done)->
@@ -784,7 +784,7 @@ describe "KrakeModel", ->
           }]
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "(\"pingedAt\" = '2013-07-06 02:57:09' or (\"updatedAt\" = '2013-07-06 02:57:09' or \"createdAt\" = '2013-07-06 02:57:09'))"
+      expect(where_clause).toEqual "(cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' or (cast(to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' or cast(to_char(\"createdAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09'))"
       done()
 
     it "should return well formated multi nested 'or' || 'and' where condition for common column non nested", (done)->
@@ -801,7 +801,7 @@ describe "KrakeModel", ->
           }]
         }]
       where_clause = @km.whereClause query_obj
-      expect(where_clause).toEqual "(\"pingedAt\" = '2013-07-06 02:57:09' or (\"updatedAt\" = '2013-07-06 02:57:09' and \"createdAt\" = '2013-07-06 02:57:09'))"
+      expect(where_clause).toEqual "(cast(to_char(\"pingedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' or (cast(to_char(\"updatedAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09' and cast(to_char(\"createdAt\", 'YYYY-MM-DD HH24:MI:SS') as text) = '2013-07-06 02:57:09'))"
       done()
 
   describe "orderClause", ->
@@ -823,7 +823,7 @@ describe "KrakeModel", ->
           $asc : "pingedAt"
         }]
       order_clause = @km.orderClause query_obj
-      expect(order_clause).toEqual '"pingedAt" asc'
+      expect(order_clause).toEqual 'cast(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as text) asc'
       done()
 
     it "should return well formatted ordering for repository specific columns", (done)->
@@ -843,7 +843,7 @@ describe "KrakeModel", ->
             $desc : "drug bank"
         }]
       order_clause = @km.orderClause query_obj
-      expect(order_clause).toEqual '"pingedAt" asc,properties::hstore->\'drug bank\' desc'
+      expect(order_clause).toEqual 'cast(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as text) asc,properties::hstore->\'drug bank\' desc'
       done()
 
     it "should return well formatted ordering that does not cause an error", (done)->

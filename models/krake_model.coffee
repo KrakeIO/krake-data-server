@@ -1,6 +1,7 @@
 ktk = require 'krake-toolkit'
 krakeSchema = ktk.schema.krake
 QueryHelper = ktk.query.helper
+recordBody  = require('krake-toolkit').schema.record
 
 class KrakeModel
   
@@ -9,6 +10,7 @@ class KrakeModel
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
     @common_cols = @status_cols.concat([@hstore_col]) 
     @Krake = @dbSystem.define 'krakes', krakeSchema
+    @record_model_body = recordBody
 
     gotKrakes = (krakes)=>
       if krakes.length == 0

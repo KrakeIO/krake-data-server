@@ -121,7 +121,7 @@ describe "CacheController with KrakeSetModel", ->
   describe "generateCache", ->
     it "should generate cache without error", (done)->
       query = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
-      @cm.generateCache(@repo_name, [], [], query, "json", (error)=>
+      @cm.generateCache(@repo_name, null, [], [], query, "json", (error)=>
         expect(error).toEqual(null)
         done()
       )
@@ -131,7 +131,7 @@ describe "CacheController with KrakeSetModel", ->
       format = 'json'
       cache_name = @cm.getCacheKey @repo_name, query_string        
       path_to_file = @test_folder + cache_name + '.' + format
-      @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+      @cm.generateCache @repo_name, null, [], [], query_string, format, (error)=>
         expect(fs.existsSync(path_to_file)).toBe true
         done()
 
@@ -147,7 +147,7 @@ describe "CacheController with KrakeSetModel", ->
       promise1 = @dbRepo.query(insert_query1)
       promise1.then ()=>
 
-        @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+        @cm.generateCache @repo_name, null, [], [], query_string, format, (error)=>
           expect(fs.existsSync path_to_file).toBe true
           expect(()=>
             JSON.parse fs.readFileSync(path_to_file)
@@ -171,7 +171,7 @@ describe "CacheController with KrakeSetModel", ->
       promise1 = @dbRepo.query(insert_query1)
       promise1.then ()=>
 
-        @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+        @cm.generateCache @repo_name, null, [], [], query_string, format, (error)=>
           expect(fs.existsSync path_to_file).toBe true
           expect(()=>
             JSON.parse fs.readFileSync(path_to_file)
@@ -187,7 +187,7 @@ describe "CacheController with KrakeSetModel", ->
       query_string = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }
       format = 'json'
       cache_name = @cm.getCacheKey @repo_name, query_string
-      @cm.generateCache @repo_name, [], [], query_string, format, (error)=>
+      @cm.generateCache @repo_name, null, [], [], query_string, format, (error)=>
         expect(fs.existsSync(@test_folder + cache_name + '.' + format)).toBe true
         @cm.clearCache @repo_name, ()->
           expect(fs.existsSync(@test_folder + cache_name + '.' + format)).toBe false
@@ -199,8 +199,8 @@ describe "CacheController with KrakeSetModel", ->
       format = 'json'
       cache_name1 = @cm.getCacheKey @repo_name, query_string1
       cache_name2 = @cm.getCacheKey @repo_name, query_string2
-      @cm.generateCache @repo_name, [], [], query_string1, format, (error)=>
-        @cm.generateCache @repo_name, [], [], query_string2, format, (error)=>
+      @cm.generateCache @repo_name, null, [], [], query_string1, format, (error)=>
+        @cm.generateCache @repo_name, null, [], [], query_string2, format, (error)=>
           expect(fs.readdirSync(@test_folder).length).toEqual 2
           @cm.clearCache @repo_name, ()->
             expect(fs.existsSync(@test_folder + cache_name1 + '.' + format)).toBe false
@@ -220,7 +220,7 @@ describe "CacheController with KrakeSetModel", ->
       promise1 = @dbRepo.query(insert_query1)
       promise1.then ()=>
 
-        @cm.generateCache @repo_name, ["drug bank", "pingedAt"], [], query_string, format, (error)=>
+        @cm.generateCache @repo_name, null, ["drug bank", "pingedAt"], [], query_string, format, (error)=>
           expect(fs.existsSync path_to_file).toBe true
           html_output = fs.readFileSync(path_to_file).toString()
           expect(html_output.match("drug bank").length).toBe 1

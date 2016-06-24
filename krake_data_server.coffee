@@ -65,7 +65,7 @@ Krake = dbSystem.define 'krakes', krakeSchema
 
 sb = new S3Backup bucket_name
 cm = new CacheController CONFIG.cachePath, dbRepo, recordBody, sb
-csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody
+csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody, sb
 mfc = new ModelFactoryController dbSystem
 
 # Web Server section of system

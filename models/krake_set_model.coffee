@@ -4,6 +4,7 @@ krakeSchema             = require('krake-toolkit').schema.krake
 dataSetSchema           = require('krake-toolkit').schema.data_set
 dataSetKrakeSchema      = require('krake-toolkit').schema.data_set_krake
 dataSetKrakeRuleSchema  = require('krake-toolkit').schema.data_set_krake_rule
+recordSetBody           = require('krake-toolkit').schema.record_set
 
 class KrakeSetModel
   
@@ -16,6 +17,7 @@ class KrakeSetModel
     @handle_col = "datasource_handle"
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
     @common_cols = @status_cols.concat([@hstore_col]).concat([@handle_col])
+    @record_model_body = recordSetBody
 
     @sync ()=>    
       @status_cols.forEach (curr_col)=>
