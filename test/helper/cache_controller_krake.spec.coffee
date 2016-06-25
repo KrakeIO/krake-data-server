@@ -71,6 +71,11 @@ describe "CacheController with KrakeModel", ->
       expect(@cm.getCacheKey @repo_name, query_string).toEqual(@repo_name + "_" + crypto.createHash('md5').update(query_string).digest("hex"))
       done()
 
+    it "should return valid cacheKey", (done)->
+      query_string = ""
+      expect(@cm.getCacheKey @repo_name, query_string).toEqual(@repo_name + "_" + crypto.createHash('md5').update(query_string).digest("hex"))
+      done()      
+
   describe "generateCache", ->
     it "should generate cache without error", (done)->
       query = @km.getSelectStatement { $select : [{ $max : "pingedAt" }] }

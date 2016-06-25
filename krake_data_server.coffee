@@ -157,7 +157,9 @@ app.get '/:data_repository/:format', (req, res)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      cm.getCacheStream data_repository, km, query_obj, req.params.format
+      console.log req.params.format
+      console.log query_obj
+      cm.getCacheStream km, query_obj, req.params.format
         .then ( down_stream )=>
           
           res.header "Content-Type", cm.getContentType( req.params.format )

@@ -44,7 +44,9 @@ class KrakeModel
 
     # Ensures only 1 Krake definition is retrieved given a krake handle
     @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).then(gotKrakes).error(couldNotGetKrakes)
-  
+
+  handle: ->
+    @repo_name
 
   getInsertStatement : (data_obj)->
     insert_keys_string = @common_cols.map((column)=>

@@ -16,12 +16,13 @@ class CacheController
     fs.mkdirSync(@cachePath) unless fs.existsSync(@cachePath)
 
   getCacheKey: (repo_name, query)->
-    repo_name + "_" + crypto.createHash('md5').update(query).digest("hex")
+    cache_key = repo_name + "_" + crypto.createHash('md5').update(query).digest("hex")
+    console.log "[CacheController] #{new Date()} \t\tCache Key: #{cache_key}"
+    cache_key
 
   # Description: given the necessary details attempts to fetch the Stream Object to data harvested 
   #
   # Params:
-  #   repo_name:String
   #   krake:Object
   #   query_obj:Object
   #   format:String
@@ -30,26 +31,26 @@ class CacheController
   #   Promise:Object
   #     resolve:function( download_stream )
   #
-  getCacheStream: (repo_name, krake, query_obj, format)->
+  getCacheStream: (krake, query_obj, format)->
     console.log "[CacheController] #{new Date()} \t\tget Cache Stream"
     deferred = Q.defer()
 
-    query_promise = @getSqlQuery( repo_name, krake, query_obj )
+    query_promise = @getSqlQuery( krake, query_obj )
 
     query_promise
       .then ( query_string )=>
         console.log "[CacheController] #{new Date()} \t\tQuery String generated"      
         if @isHardRefresh( query_obj )
           console.log "[CacheController] #{new Date()} \t\tforced to regenerate cache"      
-          @tryRefreshAndFetchLocalCacheStreamObject( repo_name, krake, query_obj, query_string, format )
+          @tryRefreshAndFetchLocalCacheStreamObject( krake, query_obj, query_string, format )
 
-        else if !@localCacheExists( repo_name, query_string, format)
+        else if !@localCacheExists( krake.handle(), query_string, format)
           console.log "[CacheController] #{new Date()} \t\tlocal cache does not exists. Generating it now"
-          @tryRefreshAndFetchLocalCacheStreamObject( repo_name, krake, query_obj, query_string, format )        
+          @tryRefreshAndFetchLocalCacheStreamObject( krake, query_obj, query_string, format )        
 
-        else if @localCacheExists( repo_name, query_string, format )
+        else if @localCacheExists( krake.handle(), query_string, format )
           console.log "[CacheController] #{new Date()} \t\tlocal cache exists. Return it"
-          @tryFetchLocalCacheStreamObject( repo_name, query_string, format )
+          @tryFetchLocalCacheStreamObject( krake.handle(), query_string, format )
 
       .then ( cache_stream )=>
         console.log "[CacheController] #{new Date()} \t\tgot Cache Stream"
@@ -65,7 +66,6 @@ class CacheController
   #   Forcefully generates the local cache even if it exists
   #
   # Params:
-  #   repo_name:String
   #   query_string:Object
   #   format:string
   #
@@ -73,14 +73,14 @@ class CacheController
   #   Promise:Object
   #     resolve( promise: Promise )
   #
-  tryRefreshAndFetchLocalCacheStreamObject: ( repo_name, krake, query_obj, query_string, format )->
+  tryRefreshAndFetchLocalCacheStreamObject: ( krake, query_obj, query_string, format )->
     console.log "[CacheController] #{new Date()} \t\ttrying to generate only from local cache"
     deferred = Q.defer()
     
-    @generateCache( repo_name, krake.record_model_body, krake.columns, krake.url_columns, query_string, format )
+    @generateCache( krake.handle(), krake.record_model_body, krake.columns, krake.url_columns, query_string, format )
       .then ()=>
         unescape = new UnescapeStream()
-        pathToFile = @getPathToLocalCache( repo_name, query_string, format )
+        pathToFile = @getPathToLocalCache( krake.handle(), query_string, format )
         local_cache_stream = fs.createReadStream( pathToFile ).pipe(unescape)
         deferred.resolve local_cache_stream
 
@@ -184,7 +184,6 @@ class CacheController
   # translates the query object to a valid SQL query string
   #
   # Params:
-  #   repo_name: String
   #   krake: Object
   #   query_obj: Object
   #
@@ -193,7 +192,7 @@ class CacheController
   #     resolve( query: String )
   #     reject( error: Object )
   #
-  getSqlQuery: (repo_name, krake, query_obj)->
+  getSqlQuery: (krake, query_obj)->
     deferred = Q.defer()
 
     if query_obj["$where"] || query_obj["$select"]
@@ -280,7 +279,7 @@ class CacheController
       "$limit" : 1
 
     query = krake.getSelectStatement query_obj
-    model = @dbRepo.define krake.repo_name, @modelBody
+    model = @dbRepo.define krake.handle(), @modelBody
     model.sync()
       .then ()=>
         @dbRepo.query(query)

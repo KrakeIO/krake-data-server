@@ -92,6 +92,8 @@ class KrakeSetModel
     @status_cols.forEach (curr_col)=>
       if curr_col not in @columns then @columns.push curr_col
         
+  handle: ->
+    @set_name
 
   getInsertStatement : (data_obj)->
     insert_keys_string = @common_cols.map((column)=>
