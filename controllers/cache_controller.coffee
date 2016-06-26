@@ -359,7 +359,7 @@ class CacheController
   # @param : callback:function()
   writeHtmlToCache : (results, columns, urlColumns, pathToFile, callback)=>
     results = results[0]
-    fs.unlinkSync pathToFile
+    if fs.existsSync(pathToFile) then fs.unlinkSync pathToFile
     fs.appendFileSync pathToFile, "<table class='table' id='data_table'>\r\n"
     
     fs.appendFileSync pathToFile, "\t<tr id='data-table-header'>\r\n"
