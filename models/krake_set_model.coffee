@@ -1,6 +1,7 @@
 schemaConfig            = require('krake-toolkit').schema.config 
 QueryHelper             = require('krake-toolkit').query.helper
 krakeSchema             = require('krake-toolkit').schema.krake
+templateSchema          = require('krake-toolkit').schema.data_template 
 dataSetSchema           = require('krake-toolkit').schema.data_set
 dataSetKrakeSchema      = require('krake-toolkit').schema.data_set_krake
 dataSetKrakeRuleSchema  = require('krake-toolkit').schema.data_set_krake_rule
@@ -30,11 +31,16 @@ class KrakeSetModel
   sync : (callback)->
     @Krake            = @dbSystem.define 'krakes', krakeSchema
     @DataSet          = @dbSystem.define 'data_sets', dataSetSchema
+    @Template         = @dbSystem.define 'data_templates', templateSchema, schemaConfig
+
     @DataSetKrake     = @dbSystem.define 'data_set_krakes', dataSetKrakeSchema
     @DataSetKrakeRule = @dbSystem.define 'data_set_krake_rules', dataSetKrakeRuleSchema
 
     @DataSet.hasMany @Krake, { through: @DataSetKrake}
     @Krake.hasMany @DataSet, { through: @DataSetKrake}
+
+    @Krake.belongsTo @Template, { as: "template", foreignKey: 'template_id' }
+    @Template.hasMany @Krake, { as: "krake", foreignKey: 'template_id'}
 
     @DataSetKrakeRule.belongsTo @DataSetKrake
     @DataSetKrake.hasMany @DataSetKrakeRule, { as: "data_set_krake_rule", foreignKey: 'data_set_krake_id'}
