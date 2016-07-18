@@ -49,7 +49,7 @@ class KrakeModel
       callback && callback false, error_msg
 
     @dbSystem.sync().done ()=>
-      @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).then(success).error(failed)
+      @Krake.findAll({ where : { handle : @repo_name }, limit: 1, include: [{all:true}] }).then(success).error(failed)
 
   handle: ->
     @repo_name

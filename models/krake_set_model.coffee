@@ -52,7 +52,7 @@ class KrakeSetModel
     query =
       where: 
         handle: @set_name
-      include: [@Krake]
+      include: [{all:true}]
       limit: 1
 
     @DataSet
