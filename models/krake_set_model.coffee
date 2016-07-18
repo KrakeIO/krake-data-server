@@ -77,7 +77,7 @@ class KrakeSetModel
 
     if @krakes.length > 0
       for current_krake in @krakes
-        curr_qh = new QueryHelper(current_krake.content)
+        curr_qh = new QueryHelper current_krake
 
         if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
           for curr_col in curr_qh.getFilteredColumns()
