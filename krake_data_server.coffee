@@ -1,6 +1,7 @@
 # @Description : this is a data server where users will call to consume the data
 #   Sample:
 #     http://data.krake.io/1_grouponsgs/json?q={"limit"":10,"offset"":10,"parent_cat_id":"45","status":"Active","createdAt":{"gt":"2013-04-15"}}
+AWS               = require 'aws-sdk'
 async             = require 'async'
 express           = require 'express'
 fs                = require 'fs'
@@ -46,6 +47,12 @@ secret_key  = process.env['AWS_SECRET_KEY']
 region      = process.env['AWS_S3_REGION'] 
 bucket_name = process.env['AWS_S3_BUCKET']
 
+AWS.config.update { 
+  accessKeyId : access_key
+  secretAccessKey : secret_key
+  region : region
+}
+
 dbRepo = new Sequelize CONFIG.postgres.database, userName, password, options
 
 options["define"]=
@@ -56,9 +63,9 @@ krakeSchema = require('krake-toolkit').schema.krake
 Krake = dbSystem.define 'krakes', krakeSchema
 
 
-sb = new S3Backup access_key, secret_key, region, bucket_name
+sb = new S3Backup bucket_name
 cm = new CacheController CONFIG.cachePath, dbRepo, recordBody, sb
-csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody
+csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody, sb
 mfc = new ModelFactoryController dbSystem
 
 # Web Server section of system
@@ -150,7 +157,9 @@ app.get '/:data_repository/:format', (req, res)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      cm.getCacheStream data_repository, km, query_obj, req.params.format
+      console.log req.params.format
+      console.log query_obj
+      cm.getCacheStream km, query_obj, req.params.format
         .then ( down_stream )=>
           
           res.header "Content-Type", cm.getContentType( req.params.format )

@@ -1,14 +1,16 @@
 schemaConfig            = require('krake-toolkit').schema.config 
-krakeSchema             = require('krake-toolkit').schema.krake
 dataSetSchema           = require('krake-toolkit').schema.data_set
+krakeSchema             = require('krake-toolkit').schema.krake
+templateSchema          = require('krake-toolkit').schema.data_template 
 KrakeModel              = require './../models/krake_model'
 KrakeSetModel           = require './../models/krake_set_model'
 
 class ModelFactoryController
 
   constructor : (@dbSystem, callback)->
-    @Krake    = @dbSystem.define 'krakes', krakeSchema
     @DataSet  = @dbSystem.define 'data_sets', dataSetSchema
+    @Krake    = @dbSystem.define 'krakes', krakeSchema
+
     @dbSystem.sync().done ()=>
       callback && callback()
 
@@ -19,7 +21,6 @@ class ModelFactoryController
 
     @Krake.count(query)
       .then (count)=>
-        console.log count
         is_true = count > 0
         callback && callback is_true
 

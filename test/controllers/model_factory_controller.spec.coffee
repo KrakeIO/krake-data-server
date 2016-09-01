@@ -44,7 +44,7 @@ describe "ModelFactoryController", ->
     @dbSystem = new Sequelize CONFIG.userDataDB, userName, password, options
 
     @set_name = "1_data_set_111111111111es"
-    @repo1_name = "1_data_source_1111111es"
+    @repo_name = "1_data_source_1111111es"
 
     @Krake            = @dbSystem.define 'krakes', krakeSchema    
     @DataSet          = @dbSystem.define 'data_sets', dataSetSchema

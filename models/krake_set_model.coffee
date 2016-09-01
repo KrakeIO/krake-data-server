@@ -1,9 +1,11 @@
 schemaConfig            = require('krake-toolkit').schema.config 
 QueryHelper             = require('krake-toolkit').query.helper
 krakeSchema             = require('krake-toolkit').schema.krake
+templateSchema          = require('krake-toolkit').schema.data_template 
 dataSetSchema           = require('krake-toolkit').schema.data_set
 dataSetKrakeSchema      = require('krake-toolkit').schema.data_set_krake
 dataSetKrakeRuleSchema  = require('krake-toolkit').schema.data_set_krake_rule
+recordSetBody           = require('krake-toolkit').schema.record_set
 
 class KrakeSetModel
   
@@ -16,6 +18,7 @@ class KrakeSetModel
     @handle_col = "datasource_handle"
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
     @common_cols = @status_cols.concat([@hstore_col]).concat([@handle_col])
+    @record_model_body = recordSetBody
 
     @sync ()=>    
       @status_cols.forEach (curr_col)=>
@@ -28,11 +31,16 @@ class KrakeSetModel
   sync : (callback)->
     @Krake            = @dbSystem.define 'krakes', krakeSchema
     @DataSet          = @dbSystem.define 'data_sets', dataSetSchema
+    @Template         = @dbSystem.define 'data_templates', templateSchema, schemaConfig
+
     @DataSetKrake     = @dbSystem.define 'data_set_krakes', dataSetKrakeSchema
     @DataSetKrakeRule = @dbSystem.define 'data_set_krake_rules', dataSetKrakeRuleSchema
 
     @DataSet.hasMany @Krake, { through: @DataSetKrake}
     @Krake.hasMany @DataSet, { through: @DataSetKrake}
+
+    @Krake.belongsTo @Template, { as: "template", foreignKey: 'template_id' }
+    @Template.hasMany @Krake, { as: "krake", foreignKey: 'template_id'}
 
     @DataSetKrakeRule.belongsTo @DataSetKrake
     @DataSetKrake.hasMany @DataSetKrakeRule, { as: "data_set_krake_rule", foreignKey: 'data_set_krake_id'}
@@ -44,7 +52,7 @@ class KrakeSetModel
     query =
       where: 
         handle: @set_name
-      include: [@Krake]
+      include: [{all:true}]
       limit: 1
 
     @DataSet
@@ -69,7 +77,7 @@ class KrakeSetModel
 
     if @krakes.length > 0
       for current_krake in @krakes
-        curr_qh = new QueryHelper(current_krake.content)
+        curr_qh = new QueryHelper current_krake
 
         if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
           for curr_col in curr_qh.getFilteredColumns()
@@ -90,6 +98,8 @@ class KrakeSetModel
     @status_cols.forEach (curr_col)=>
       if curr_col not in @columns then @columns.push curr_col
         
+  handle: ->
+    @set_name
 
   getInsertStatement : (data_obj)->
     insert_keys_string = @common_cols.map((column)=>

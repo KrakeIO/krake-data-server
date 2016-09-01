@@ -1,6 +1,8 @@
-ktk = require 'krake-toolkit'
-krakeSchema = ktk.schema.krake
-QueryHelper = ktk.query.helper
+ktk             = require 'krake-toolkit'
+krakeSchema     = ktk.schema.krake
+recordBody      = ktk.schema.record
+templateSchema  = ktk.schema.data_template 
+QueryHelper     = ktk.query.helper
 
 class KrakeModel
   
@@ -8,9 +10,15 @@ class KrakeModel
     @hstore_col = "properties"
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
     @common_cols = @status_cols.concat([@hstore_col]) 
-    @Krake = @dbSystem.define 'krakes', krakeSchema
+    @Krake    = @dbSystem.define 'krakes', krakeSchema
+    @Template = @dbSystem.define 'data_templates', templateSchema
 
-    gotKrakes = (krakes)=>
+    @Krake.belongsTo @Template, { as: "template", foreignKey: 'template_id' }
+    @Template.hasMany @Krake, { as: "krake", foreignKey: 'template_id'}    
+
+    @record_model_body = recordBody
+
+    success = (krakes)=>
       if krakes.length == 0
         @columns        = []
         @url_columns    = []
@@ -19,7 +27,7 @@ class KrakeModel
 
       else
         current_krake = krakes[0]
-        curr_qh = new QueryHelper(current_krake.content)
+        curr_qh = new QueryHelper current_krake
         @domain = curr_qh.domain
 
         if curr_qh.getFilteredColumns() && curr_qh.getFilteredColumns().length > 0
@@ -37,12 +45,14 @@ class KrakeModel
         callback && callback curr_qh.is_valid
 
   
-    couldNotGetKrakes = (error_msg)->
+    failed = (error_msg)->
       callback && callback false, error_msg
 
-    # Ensures only 1 Krake definition is retrieved given a krake handle
-    @Krake.findAll({ where : { handle : @repo_name }, limit: 1 }).then(gotKrakes).error(couldNotGetKrakes)
-  
+    @dbSystem.sync().done ()=>
+      @Krake.findAll({ where : { handle : @repo_name }, limit: 1, include: [{all:true}] }).then(success).error(failed)
+
+  handle: ->
+    @repo_name
 
   getInsertStatement : (data_obj)->
     insert_keys_string = @common_cols.map((column)=>
