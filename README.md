@@ -324,6 +324,10 @@ CREATE TABLE data_repository_table (
 production environment
 ```console
 mkdir /tmp/krake_data_cache
+chgrp postgres krake_data_cache
+chown postgres krake_data_cache
+chmod 770 krake_data_cache
+usermod -a -G postgres NODE_USER
 ```
 
 Make sure current owner daemon has permissions to read/write from folder
