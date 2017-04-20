@@ -205,6 +205,7 @@ app.get '/:data_repository/batches', (req, res)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       console.log req.params.format
       console.log query_obj
+
       cm.getCachedRecords km, query_obj, "json"
         .then ( found_records )=>
           res.header "Content-Type", cm.getContentType( "json" )
@@ -213,8 +214,10 @@ app.get '/:data_repository/batches', (req, res)=>
           for record in found_records
             record.timestamp = record.pingedAt
             timestamp_int = new Date(record.pingedAt).getTime() / 1000
+            record.total = record.count
             record.url = "#{CONFIG.serverPath}/#{data_repository}/batch_data?timestamp=#{timestamp_int}"
-            delete record.pingedAt            
+            delete record.pingedAt     
+            delete record.count            
 
           res.send found_records
 
@@ -253,6 +256,7 @@ app.get '/:data_repository/batch_data', (req, res)=>
         .then ( results )=>
           found_records = results[0]
           count_records = results[1]
+
           res.header "Content-Type", cm.getContentType( "json" )
           res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.json'
 
