@@ -260,11 +260,25 @@ app.get '/:data_repository/batch_data', (req, res)=>
           res.header "Content-Type", cm.getContentType( "json" )
           res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.json'
 
-          res.send 
-            total: parseInt(count_records.count)
-            timestamp: count_records.batch
-            page: parseInt(req.query.page)
+          pagination = 
+            current_page: parseInt(req.query.page)
             per_page: parseInt(req.query.per_page)
+
+          total = parseInt(count_records.count)
+          pagination.total_pages = Math.ceil(total / pagination.per_page)
+
+          timestamp_int = new Date(count_records.batch).getTime() / 1000
+
+          if total > pagination.page * pagination.per_page
+            pagination.next_page = "#{CONFIG.serverPath}/#{data_repository}/batch_data?timestamp=#{timestamp_int}&page=#{pagination.page+1}&per_page=#{pagination.per_page}"
+
+          if pagination.page > 1
+            pagination.prev_page = "#{CONFIG.serverPath}/#{data_repository}/batch_data?timestamp=#{timestamp_int}&page=#{pagination.page-1}&per_page=#{pagination.per_page}"
+
+          res.send 
+            total: total
+            timestamp: count_records.batch
+            pagination: pagination
             results: found_records
 
         .catch ( err )=>
