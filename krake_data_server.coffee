@@ -240,6 +240,8 @@ app.get '/:data_repository/batches/:format', (req, res)=>
 #      timestamp:String - in either of the following format
 #        int(10) - 1492393690
 #        string - 2017-04-16 18:48:10
+#      per_page:Integer
+#      page:Integer
 #  
 app.get '/:data_repository/batch_data/:format', (req, res)=>  
   if !cm.isValidFormat( req.params.format )
