@@ -186,14 +186,7 @@ app.get '/:data_repository/schema', (req, res)=>
 #      iso_string:string
 #        E.g. 2017-04-16 18:48:10
 #
-app.get '/:data_repository/batches/:format', (req, res)=>
-  if !cm.isValidFormat( req.params.format )
-    res.status(400).send { 
-      status: "failed", 
-      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
-    }
-    return
-
+app.get '/:data_repository/batches', (req, res)=>
   query_obj = 
     $select: ["pingedAt",
     {
@@ -212,15 +205,18 @@ app.get '/:data_repository/batches/:format', (req, res)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       console.log req.params.format
       console.log query_obj
-      cm.getCacheStream km, query_obj, req.params.format
-        .then ( down_stream )=>
-          
-          res.header "Content-Type", cm.getContentType( req.params.format )
-          res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
-          if req.params.format in [ 'csv' ]
-            res.header 'Content-disposition', 'attachment; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
+      cm.getCachedRecords km, query_obj, "json"
+        .then ( found_records )=>
+          res.header "Content-Type", cm.getContentType( "json" )
+          res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.json'
 
-          down_stream.pipe res
+          for record in found_records
+            record.timestamp = record.pingedAt
+            timestamp_int = new Date(record.pingedAt).getTime() / 1000
+            record.url = "#{CONFIG.serverPath}/#{data_repository}/batch_data?timestamp=#{timestamp_int}"
+            delete record.pingedAt            
+
+          res.send found_records
 
         .catch ( err )=>
           console.log err
@@ -243,14 +239,7 @@ app.get '/:data_repository/batches/:format', (req, res)=>
 #      per_page:Integer
 #      page:Integer
 #  
-app.get '/:data_repository/batch_data/:format', (req, res)=>  
-  if !cm.isValidFormat( req.params.format )
-    res.status(400).send { 
-      status: "failed", 
-      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
-    }
-    return
-
+app.get '/:data_repository/batch_data', (req, res)=>  
   query_obj = getQueryObject req
   data_repository = req.params.data_repository
 
@@ -258,16 +247,14 @@ app.get '/:data_repository/batch_data/:format', (req, res)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
       Q.all([
-        cm.getCachedRecords(km, query_obj, req.params.format),
+        cm.getCachedRecords(km, query_obj, "json"),
         cm.getCountForBatchFromQuery(km, query_obj)
       ])
         .then ( results )=>
           found_records = results[0]
           count_records = results[1]
-          res.header "Content-Type", cm.getContentType( req.params.format )
-          res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
-          if req.params.format in [ 'csv' ]
-            res.header 'Content-disposition', 'attachment; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
+          res.header "Content-Type", cm.getContentType( "json" )
+          res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.json'
 
           res.send 
             total: parseInt(count_records.count)

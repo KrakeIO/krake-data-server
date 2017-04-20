@@ -8,7 +8,8 @@
       "database" : "scraped_data_repo_test"
     },
     "userDataDB" : "dev_panel_test",
-    "cachePath" : "/tmp/test/"
+    "cachePath" : "/tmp/test/",
+    "serverPath": "http://localhost:9803"
   },  
   "development": {
     "postgres" :{
@@ -19,7 +20,8 @@
       "database" : "scraped_data_repo_development"
     },
     "userDataDB" : "dev_panel_development",
-    "cachePath" : "/tmp/dev/"
+    "cachePath" : "/tmp/dev/",
+    "serverPath": "http://localhost:9803"
   },
   "production": {
     "postgres" : {
@@ -30,6 +32,7 @@
       "database" : "scraped_data_repo"
     },
     "userDataDB" : "dev_panel",
-    "cachePath" : "/tmp/krake_data_cache/"
+    "cachePath" : "/tmp/krake_data_cache/",
+    "serverPath": "http://data.getdata.io"
   }
 }
