@@ -15,10 +15,43 @@ class CacheController
   createCacheFolder: ()->
     fs.mkdirSync(@cachePath) unless fs.existsSync(@cachePath)
 
+  # TO BE EXTENDED:
+  #   Returns: String:
+  #        <<data_repository>>_([batches_|])_timestamp
+  #
   getCacheKey: (repo_name, query)->
     cache_key = repo_name + "_" + crypto.createHash('md5').update(query).digest("hex")
     console.log "[CacheController] #{new Date()} \t\tCache Key: #{cache_key}"
     cache_key
+
+
+  # Description: given the necessary details attempts to return an array of the records harvested 
+  #
+  # Params:
+  #   krake:Object
+  #   query_obj:Object
+  #   format:String
+  #
+  # Returns
+  #   Promise:Object
+  #     resolve:function( Array )
+  #
+  getCachedRecords: (krake, query_obj, format)->
+    deferred = Q.defer()
+
+    @getCacheStream krake, query_obj, format
+      .then ( down_stream )=>    
+        read_data = ''
+        down_stream.on 'data', (chunk)=> 
+          read_data += chunk
+
+        down_stream.on 'end', =>
+          deferred.resolve JSON.parse(read_data)
+
+      .catch ( err ) =>
+        deferred.reject err
+
+    deferred.promise
 
   # Description: given the necessary details attempts to fetch the Stream Object to data harvested 
   #
@@ -201,8 +234,8 @@ class CacheController
     else
       @getLatestBatch(krake)
         .then (latest_batch)=>
-          query_obj = 
-            '$fresh': true          
+          query_obj['$fresh'] = true
+
           if latest_batch
             console.log "latest batch: #{latest_batch}"
             query_obj['$where'] = [ { pingedAt: latest_batch } ]
@@ -227,6 +260,22 @@ class CacheController
           batch: "None", 
           count: 0
         })
+
+    deferred.promise
+
+  # gets the total records count for the batch indicated in the query_obj
+  getCountForBatchFromQuery: (krake, query_obj)=>
+    deferred = Q.defer()
+    latest_batch = null
+
+    query_obj.$where? && query_obj.$where.forEach (where_clause)=>
+      latest_batch = where_clause.pingedAt if where_clause.pingedAt
+
+    if latest_batch? 
+      @getCountForBatch krake, latest_batch, deferred
+    else
+      @getLatestBatch(krake).then (latest_batch)=>
+        @getCountForBatch krake, latest_batch, deferred
 
     deferred.promise
 

@@ -9,6 +9,7 @@ class KrakeModel
   constructor : (@dbSystem, @repo_name, @columns, callback)->
     @hstore_col = "properties"
     @status_cols = ["createdAt", "updatedAt", "pingedAt"]
+    @count_col = "count"
     @common_cols = @status_cols.concat([@hstore_col]) 
     @Krake    = @dbSystem.define 'krakes', krakeSchema
     @Template = @dbSystem.define 'data_templates', templateSchema
@@ -94,14 +95,16 @@ class KrakeModel
       ).join(",")
 
   getSelectStatement : (query_obj)->
+
     query_string =  'SELECT ' + @selectClause(query_obj) + 
                     ' FROM "' + @repo_name + '" ' + 
                     ' WHERE ' + (@whereClause(query_obj) || 'true')
 
-    
+    if query_obj.$groupBy? then query_string += @groupByClause(query_obj)    
     if order_clause = @orderClause query_obj then query_string += ' ORDER BY ' + order_clause 
     if query_obj.$limit && query_obj.$limit > 0 then query_string += ' LIMIT ' + query_obj.$limit
     if query_obj.$offset && query_obj.$offset > 0 then query_string += ' OFFSET ' + query_obj.$offset
+    
     query_string
 
   hstoreColName: (column)->
@@ -116,6 +119,12 @@ class KrakeModel
       @timeStampColName column
     else 
       @hstoreColName column
+
+  countColNameSelect : (column)->
+    if column == @count_col
+      return 1
+    else 
+      @compoundColNameSelect column
 
   compoundColNameSelect : (column)->
     column = column.replace(/"/, '&#34;').replace(/'/, '&#39;')
@@ -160,7 +169,7 @@ class KrakeModel
           operator = Object.keys(column)[0]
           switch operator
             when "$count"
-              "count(" + @compoundColNameSelect(column[operator]) + ") as " + @colLabel(column[operator]) 
+              "count(" + @countColNameSelect(column[operator]) + ") as " + @colLabel(column[operator]) 
 
             when "$distinct"
               'distinct cast(' + @compoundColNameSelect(column[operator]) + ' as text) as ' + @colLabel(column[operator])
@@ -242,6 +251,11 @@ class KrakeModel
 
       query.push sub_query
     query.join(" and ")
+
+  groupByClause : (query_obj)->
+    return false unless query_obj.$groupBy && query_obj.$groupBy.length > 0
+    return " group by " + @simpleColName(query_obj.$groupBy)
+
 
   orderClause : (query_obj)->
     return false unless query_obj.$order && query_obj.$order.length > 0

@@ -12,6 +12,7 @@ Sequelize         = require 'sequelize'
 recordBody        = require('krake-toolkit').schema.record
 recordSetBody     = require('krake-toolkit').schema.record_set
 UnescapeStream    = require 'unescape-stream'
+Q                 = require 'q'
 
 KrakeModel              = require './models/krake_model'
 KrakeSetModel           = require './models/krake_set_model'
@@ -67,6 +68,34 @@ sb = new S3Backup bucket_name
 cm = new CacheController CONFIG.cachePath, dbRepo, recordBody, sb
 csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody, sb
 mfc = new ModelFactoryController dbSystem
+
+getQueryObject = (req)->
+  req.query.page = 1 if !req.query.page? || req.query.page < 1
+  req.query.per_page = 100 if !req.query.per_page?
+  req.query.per_page = 1000 if req.query.per_page? && req.query.per_page? > 1000
+
+  query_obj = 
+    $limit: 100
+    $offset: 0
+
+  query_obj.$limit = req.query.per_page
+  query_obj.$offset = (req.query.page - 1) * query_obj.$limit
+
+  if req.query.timestamp? && typeof req.query.timestamp == "string"
+    if req.query.timestamp.match(/^([0-9]{10})$/)
+      tzoffset = (new Date()).getTimezoneOffset() * 60000
+      database_date = new Date( new Date(req.query.timestamp*1000) - tzoffset )
+      query_obj.$where = [{ 
+        pingedAt: database_date.toISOString().replace("T", " ").replace(".000Z", "")
+      }]
+    else
+      query_obj.$where = [{ 
+        pingedAt: req.query.timestamp
+      }]
+
+  query_obj
+
+
 
 # Web Server section of system
 app = module.exports = express.createServer();
@@ -141,6 +170,114 @@ app.get '/:data_repository/schema', (req, res)=>
         url_columns:   km.url_columns || []
         index_columns: km.index_columns || []      
       res.send response
+
+
+# @Description : Returns an array of JSON/CSV information
+#   
+#    Params:
+#      data_repository:String
+#      format:String
+#        csv, json, html
+#    
+#    Additional Params:
+#      timestamp:int(13)
+#        E.g. 1492393690000
+#
+#      iso_string:string
+#        E.g. 2017-04-16 18:48:10
+#
+app.get '/:data_repository/batches/:format', (req, res)=>
+  if !cm.isValidFormat( req.params.format )
+    res.status(400).send { 
+      status: "failed", 
+      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
+    }
+    return
+
+  query_obj = 
+    $select: ["pingedAt",
+    {
+      $count: "count"
+    }],
+    $order: [{
+      $desc: "pingedAt"
+    }],
+    $groupBy : "pingedAt"
+    $fresh: true    
+
+  data_repository = req.params.data_repository
+
+  mfc.getModel data_repository, (FactoryModel)=>
+    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
+      console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
+      console.log req.params.format
+      console.log query_obj
+      cm.getCacheStream km, query_obj, req.params.format
+        .then ( down_stream )=>
+          
+          res.header "Content-Type", cm.getContentType( req.params.format )
+          res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
+          if req.params.format in [ 'csv' ]
+            res.header 'Content-disposition', 'attachment; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
+
+          down_stream.pipe res
+
+        .catch ( err )=>
+          console.log err
+          res.send err
+
+
+
+
+# @Description : Returns an array of JSON/CSV results given a batch date
+#   
+#    Params:
+#      data_repository:String
+#      format:String
+#        csv, json, html
+#    
+#    Additional Params:
+#      timestamp:String - in either of the following format
+#        int(10) - 1492393690
+#        string - 2017-04-16 18:48:10
+#  
+app.get '/:data_repository/batch_data/:format', (req, res)=>  
+  if !cm.isValidFormat( req.params.format )
+    res.status(400).send { 
+      status: "failed", 
+      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
+    }
+    return
+
+  query_obj = getQueryObject req
+  data_repository = req.params.data_repository
+
+  mfc.getModel data_repository, (FactoryModel)=>
+    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
+      console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
+      Q.all([
+        cm.getCachedRecords(km, query_obj, req.params.format),
+        cm.getCountForBatchFromQuery(km, query_obj)
+      ])
+        .then ( results )=>
+          found_records = results[0]
+          count_records = results[1]
+          res.header "Content-Type", cm.getContentType( req.params.format )
+          res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
+          if req.params.format in [ 'csv' ]
+            res.header 'Content-disposition', 'attachment; filename=' + data_repository + '_page_' + req.query.page + '.' + req.params.format
+
+          res.send 
+            total: parseInt(count_records.count)
+            timestamp: count_records.batch
+            page: parseInt(req.query.page)
+            per_page: parseInt(req.query.per_page)
+            results: found_records
+
+        .catch ( err )=>
+          console.log err
+          res.send err
+
 
 # @Description : Returns an array of JSON/CSV results based on query parameters
 app.get '/:data_repository/:format', (req, res)=>
