@@ -402,8 +402,12 @@ describe "KrakeModel", ->
       ).not.toThrow()
       done()
 
-
     describe "$count", ->
+      it "should return properly formatted count col for $count", (done)->
+        select_clause = @km.selectClause { $select : [{ $count : "count" }] }
+        expect(select_clause).toEqual 'count(1) as "count"'
+        done()
+
       it "should return properly formatted common columns for $count", (done)->
         select_clause = @km.selectClause { $select : [{ $count : "pingedAt" }] }
         expect(select_clause).toEqual 'count(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\')) as "pingedAt"'
@@ -426,6 +430,17 @@ describe "KrakeModel", ->
         expect(()=>  
           @dbRepo.query query_string
         ).not.toThrow()
+        done()
+
+    describe "$groupBy", ->
+      it "should return properly formatted common columns for $groupBy", (done)->
+        select_clause = @km.selectClause { $select : [{ $distinct : "pingedAt" }] }
+        expect(select_clause).toEqual 'distinct cast(to_char("pingedAt", \'YYYY-MM-DD HH24:MI:SS\') as text) as "pingedAt"'
+        done()
+
+      it "should return properly formatted repository columns for $distinct", (done)->
+        select_clause = @km.selectClause { $select : [{ $distinct : "col1" }] }
+        expect(select_clause).toEqual 'distinct cast(properties::hstore->\'col1\' as text) as "col1"'
         done()
 
     describe "$distinct", ->
