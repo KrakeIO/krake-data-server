@@ -69,7 +69,7 @@ cm = new CacheController CONFIG.cachePath, dbRepo, recordBody, sb
 csm = new CacheController CONFIG.cachePath, dbRepo, recordSetBody, sb
 mfc = new ModelFactoryController dbSystem
 
-getQueryObject = (req)->
+getPaginatedQueryObject = (req)->
   req.query.page = 1 if !req.query.page? || req.query.page < 1
   req.query.per_page = 100 if !req.query.per_page?
   req.query.per_page = 1000 if req.query.per_page? && req.query.per_page? > 1000
@@ -81,19 +81,94 @@ getQueryObject = (req)->
   query_obj.$limit = req.query.per_page
   query_obj.$offset = (req.query.page - 1) * query_obj.$limit
 
-  if req.query.timestamp? && typeof req.query.timestamp == "string"
-    if req.query.timestamp.match(/^([0-9]{10})$/)
-      tzoffset = (new Date()).getTimezoneOffset() * 60000
-      database_date = new Date( new Date(req.query.timestamp*1000) - tzoffset )
-      query_obj.$where = [{ 
-        pingedAt: database_date.toISOString().replace("T", " ").replace(".000Z", "")
-      }]
-    else
-      query_obj.$where = [{ 
-        pingedAt: req.query.timestamp
-      }]
+  iso_time = getIsoTime(req.query.timestamp)
+  iso_time? && query_obj.$where = [{ pingedAt: iso_time }]
 
   query_obj
+
+getRawQueryObject = (req)->
+  query_obj = req.query.q && JSON.parse(req.query.q) || {}
+  req.query.per_page? && query_obj.$limit = req.query.per_page
+  req.query.per_page? && req.query.page? && query_obj.$offset = (req.query.page - 1) * query_obj.$limit
+
+  iso_time = getIsoTime(req.query.timestamp)
+  iso_time? && query_obj.$where = [{ pingedAt: iso_time }]
+
+  query_obj
+
+getIsoTime = (timestamp_query_param = null)->
+  if timestamp_query_param? && typeof timestamp_query_param == "string"
+    if timestamp_query_param.match(/^([0-9]{10})$/)
+
+      # Disabling timezone offset
+      # tzoffset = (new Date()).getTimezoneOffset() * 60000
+      tzoffset = 0
+
+      database_date = new Date( new Date(timestamp_query_param*1000) - tzoffset )
+      database_date.toISOString().replace("T", " ").replace(".000Z", "")
+    else
+      timestamp_query_param
+  else
+    null
+
+getPaginatedJSONResponse = (req, res, data_repository, krake_model, query_obj)->
+  Q.all([
+    cm.getCachedRecords(krake_model, query_obj, "json"),
+    cm.getCountForBatchFromQuery(krake_model, query_obj)
+  ])
+    .then ( results )=>
+      found_records = results[0]
+      count_records = results[1]
+
+      res.header "Content-Type", cm.getContentType( "json" )
+      res.header 'Content-Disposition', 'inline; filename=' + data_repository + '_page_' + req.query.page + '.json'
+
+      pagination = 
+        current_page: parseInt(req.query.page)
+        per_page: parseInt(req.query.per_page)
+
+      total = parseInt(count_records.count)
+      pagination.total_pages = Math.ceil(total / pagination.per_page)
+
+      timestamp_int = new Date(count_records.batch).getTime() / 1000
+
+      if total > pagination.current_page * pagination.per_page
+        pagination.next_page = "#{CONFIG.serverPath}/#{data_repository}/batch_data?timestamp=#{timestamp_int}&page=#{pagination.current_page+1}&per_page=#{pagination.per_page}"
+
+      if pagination.current_page > 1
+        pagination.prev_page = "#{CONFIG.serverPath}/#{data_repository}/batch_data?timestamp=#{timestamp_int}&page=#{pagination.current_page-1}&per_page=#{pagination.per_page}"
+
+      res.send 
+        total: total
+        timestamp: count_records.batch
+        pagination: pagination
+        results: found_records
+
+    .catch ( err )=>
+      console.log err
+      res.send err  
+
+
+
+getRequestResponse = (req, res, data_repository, krake_model, query_obj, data_format)->
+  cm.getCacheStream krake_model, query_obj, data_format
+    .then ( down_stream )=>
+      
+      res.header "Content-Type", cm.getContentType( data_format )
+      res.header 'Content-Disposition', 'inline; filename=' + data_repository + '.' + data_format
+      if data_format in [ 'csv' ]
+        res.header 'Content-disposition', 'attachment; filename=' + data_repository + '.' + data_format
+
+      down_stream.pipe res
+
+    .catch ( err )=>
+      console.log err
+      res.send err
+
+
+
+getRequestedDataFormat = (req)->
+  req.params.format || req.query.format || "json"
 
 
 
@@ -176,15 +251,11 @@ app.get '/:data_repository/schema', (req, res)=>
 #   
 #    Params:
 #      data_repository:String
-#      format:String
-#        csv, json, html
 #    
 #    Additional Params:
-#      timestamp:int(13)
-#        E.g. 1492393690000
-#
-#      iso_string:string
-#        E.g. 2017-04-16 18:48:10
+#      timestamp:String - in either of the following format
+#        int(10) - 1492393690
+#        string - 2017-04-16 18:48:10
 #
 app.get '/:data_repository/batches', (req, res)=>
   query_obj = 
@@ -227,7 +298,6 @@ app.get '/:data_repository/batches', (req, res)=>
 
 
 
-
 # @Description : Returns an array of JSON/CSV results given a batch date
 #   
 #    Params:
@@ -243,7 +313,7 @@ app.get '/:data_repository/batches', (req, res)=>
 #      page:Integer
 #  
 app.get '/:data_repository/batch_data', (req, res)=>  
-  query_obj = getQueryObject req
+  query_obj = getPaginatedQueryObject req
   data_repository = req.params.data_repository
 
   mfc.getModel data_repository, (FactoryModel)=>
@@ -286,13 +356,55 @@ app.get '/:data_repository/batch_data', (req, res)=>
           res.send err
 
 
+
+# @Description : Returns an array of paginated JSON/CSV results given a batch date
+#   
+#    Params:
+#      data_repository:String
+#      format:String
+#        csv, json, html
+#    
+#    Additional Params:
+#      timestamp:String - in either of the following format
+#        int(10) - 1492393690
+#        string - 2017-04-16 18:48:10
+#      per_page:Integer
+#      page:Integer
+#  
+app.get '/:data_repository/paginate', (req, res)=>  
+  query_obj = getPaginatedQueryObject req
+  data_repository = req.params.data_repository
+
+  mfc.getModel data_repository, (FactoryModel)=>
+    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
+      console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
+      format = getRequestedDataFormat req
+      if format == "json"
+        getPaginatedJSONResponse(req, res, data_repository, km, query_obj)
+      else
+        getRequestResponse(req, res, data_repository, km, query_obj, data_format)
+      
+
+
 # @Description : Returns an array of JSON/CSV results based on query parameters
-app.get '/:data_repository/:format', (req, res)=>
+#   
+#    Params:
+#      data_repository:String
+#      format:String
+#
+#    Additional Params:
+#      q:Object
+#      timestamp:String - in either of the following format
+#        int(10) - 1492393690
+#        string - 2017-04-16 18:48:10
+#
+app.get '/:data_repository/stream', (req, res)=>
   
-  if !cm.isValidFormat( req.params.format )
+  data_format = getRequestedDataFormat(req)
+  if !cm.isValidFormat( data_format )
     res.status(400).send { 
       status: "failed", 
-      message: "'#{req.params.format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
+      message: "'#{data_format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
     }
     return
 
@@ -300,22 +412,44 @@ app.get '/:data_repository/:format', (req, res)=>
   mfc.getModel data_repository, (FactoryModel)=>
     km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
       console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
-      query_obj = req.query.q && JSON.parse(req.query.q) || {}
-      console.log req.params.format
+      query_obj = getRawQueryObject req
+      console.log data_format
       console.log query_obj
-      cm.getCacheStream km, query_obj, req.params.format
-        .then ( down_stream )=>
-          
-          res.header "Content-Type", cm.getContentType( req.params.format )
-          res.header 'Content-Disposition', 'inline; filename=' + data_repository + '.' + req.params.format
-          if req.params.format in [ 'csv' ]
-            res.header 'Content-disposition', 'attachment; filename=' + data_repository + '.' + req.params.format
+      getRequestResponse(req, res, data_repository, km, query_obj, data_format)
 
-          down_stream.pipe res
 
-        .catch ( err )=>
-          console.log err
-          res.send err
+# @Description : Returns an array of JSON/CSV results based on query parameters
+#   
+#    Params:
+#      data_repository:String
+#      format:String
+#
+#    Additional Params:
+#      q:Object
+#      timestamp:String - in either of the following format
+#        int(10) - 1492393690
+#        string - 2017-04-16 18:48:10
+#
+app.get '/:data_repository/:format', (req, res)=>
+  
+  data_format = getRequestedDataFormat(req)
+  if !cm.isValidFormat( data_format )
+    res.status(400).send { 
+      status: "failed", 
+      message: "'#{data_format}' is not a recognized format, only the following formats are recognized: json, csv, html" 
+    }
+    return
+
+  data_repository = req.params.data_repository  
+  mfc.getModel data_repository, (FactoryModel)=>
+    km = new FactoryModel dbSystem, data_repository, [], (status, error_message)=>
+      console.log "[DATA_SERVER] #{new Date()} data source query — #{data_repository}"
+      query_obj = getRawQueryObject req
+      console.log data_format
+      console.log query_obj
+      getRequestResponse(req, res, data_repository, km, query_obj, data_format)
+
+
 
 # @Description : Copies all records from data_repository over to dataset_repository
 app.get '/connect/:data_repository/:dataset_repository', (req, res)=>
