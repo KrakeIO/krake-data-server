@@ -382,6 +382,9 @@ class CacheController
           when 'csv'
             query = "Copy (" + query + ") To '" + pathToFile + "' With " + @csvDelimiter + " CSV HEADER;"
 
+        console.log "==== Start Query ===="
+        console.log query
+        console.log "==== End Query ===="
         @dbRepo.query(query)
 
       .then (results)=>
