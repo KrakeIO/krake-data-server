@@ -159,6 +159,7 @@ getRequestResponse = (req, res, data_repository, krake_model, query_obj, data_fo
       if data_format in [ 'csv' ]
         res.header 'Content-disposition', 'attachment; filename=' + data_repository + '.' + data_format
 
+      console.log "[DATA_SERVER] #{new Date()} \t\tpiping response back"
       down_stream.pipe res
 
     .catch ( err )=>
