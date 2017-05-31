@@ -3,6 +3,35 @@
 ## Overview
 Provides RESTFUL API for Postgresql HSTORE database used in [Krake's Data Harvesting Engine] (https://krake.io)
 
+#### Server maintenance
+
+Procedures after restart
+```
+# Check disk
+lsblk
+
+# Mounting disks to locations
+sudo mount /dev/xvdg /krake_data_cache_2
+sudo mount /dev/xvdf /krake_export_dump
+sudo ln -s /krake_export_dump/krake_export_dump_2/ /tmp/krake_data_cache
+
+# Granting permissions to ubuntu user
+sudo chgrp -R postgres /krake_export_dump
+sudo chown -R postgres /krake_export_dump
+sudo usermod -a -G postgres ubuntu
+sudo chmod -R 770 /krake_export_dump
+```
+
+Procedures to clear export cache
+```
+mkdir /krake_export_dump/krake_export_dump_XXX
+sudo chgrp -R postgres /krake_export_dump/krake_export_dump_XXX
+sudo chown -R postgres /krake_export_dump/krake_export_dump_XXX
+sudo ln -s /krake_export_dump/krake_export_dump_XXX/ /tmp/krake_data_cache_XXX
+sudo mv /tmp/krake_data_cache_XXX /tmp/krake_data_cache
+sudo rm /tmp/krake_data_cache_org
+```
+
 # Query Operators
 HTTP GET Request to query Krake data server for data. 
 Important: Operators made available are restricted to ones that are indempotent of nature
