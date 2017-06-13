@@ -20,6 +20,9 @@ sudo chgrp -R postgres /krake_export_dump
 sudo chown -R postgres /krake_export_dump
 sudo usermod -a -G postgres ubuntu
 sudo chmod -R 770 /krake_export_dump
+
+# Restarting server
+sudo /etc/init.d/postgresql restart
 ```
 
 Procedures to clear export cache
